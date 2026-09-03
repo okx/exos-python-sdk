@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+.venv/
+.vscode/
+.env
+.ipython/
+
+# Local planning and review artifacts
+.claude/
+security-audit-*.md

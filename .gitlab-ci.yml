@@ -1,0 +1,41 @@
+stages:
+  - lint
+  - test
+  - build
+
+default:
+  image: python:3.12-slim
+  before_script:
+    - python -m pip install --upgrade pip
+    - python -m pip install -e '.[test]'
+
+lint:
+  stage: lint
+  script:
+    - python -m ruff check src tests
+    - python -m ruff format --check src tests
+    - python -m mypy src
+
+test:
+  stage: test
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.10", "3.11", "3.12", "3.13"]
+  image: python:${PYTHON_VERSION}-slim
+  script:
+    - python -m pytest --cov=exchangeos_sdk --cov-report=term-missing --cov-fail-under=90
+
+package:
+  stage: build
+  script:
+    - python -m build
+    - python -m twine check dist/*
+    - python -m venv /tmp/exchangeos-wheel-smoke
+    - /tmp/exchangeos-wheel-smoke/bin/python -m pip install dist/*.whl
+    - /tmp/exchangeos-wheel-smoke/bin/python -c "import importlib.metadata, exchangeos_sdk; assert importlib.metadata.version('exchangeos-sdk') == exchangeos_sdk.__version__"
+    - python -m venv /tmp/exchangeos-sdist-smoke
+    - /tmp/exchangeos-sdist-smoke/bin/python -m pip install dist/*.tar.gz
+    - /tmp/exchangeos-sdist-smoke/bin/python -c "import importlib.metadata, exchangeos_sdk; assert importlib.metadata.version('exchangeos-sdk') == exchangeos_sdk.__version__"
+  artifacts:
+    paths:
+      - dist/
