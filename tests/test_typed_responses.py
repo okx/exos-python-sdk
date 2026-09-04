@@ -183,7 +183,9 @@ def test_legacy_direct_funding_and_bills_pages_normalize_to_data_zero() -> None:
 
 def test_cancel_all_after_uses_expires_after_wire_name() -> None:
     client, http = client_for([{"code": "0", "serverTimestamp": "1000", "expiresAfter": "61000"}])
-    result = client.trade.cancel_all_after({"action": {"type": "noop"}, "nonce": 1})
+    result = client.trade.cancel_all_after(
+        {"action": {"type": "cancelAll", "marketType": "perp"}, "nonce": 1}
+    )
     assert isinstance(result[0], WriteResult)
     assert result[0].expires_after == "61000"
     assert "expireAt" not in result[0]

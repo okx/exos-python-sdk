@@ -1,5 +1,6 @@
 """Authenticated Spot and Perps trade API."""
 
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from ..exceptions import ValidationError
@@ -28,6 +29,38 @@ TRADE_ENDPOINTS = (
 )
 
 
+def _spot_or_perp_market_type(value: Any) -> None:
+    if isinstance(value, str) and value in {"spot", "perp"}:
+        return
+    if isinstance(value, Mapping) and set(value) == {"perp"} and isinstance(value["perp"], Mapping):
+        return
+    raise ValidationError("ExchangeOS Trade writes support only spot or perp marketType")
+
+
+def _validate_order_markets(action: Mapping[str, Any]) -> None:
+    orders = action.get("orders")
+    if not isinstance(orders, Sequence) or isinstance(orders, (str, bytes)):
+        raise ValidationError("placeOrder action orders must be a sequence")
+    for order in orders:
+        if not isinstance(order, Mapping):
+            raise ValidationError("placeOrder action orders must contain mappings")
+        _spot_or_perp_market_type(order.get("marketType"))
+
+
+def _validate_cancel_markets(action: Mapping[str, Any]) -> None:
+    cancels = action.get("cancels")
+    if not isinstance(cancels, Sequence) or isinstance(cancels, (str, bytes)):
+        raise ValidationError("cancel action cancels must be a sequence")
+    for cancel in cancels:
+        if not isinstance(cancel, Mapping):
+            raise ValidationError("cancel action cancels must contain mappings")
+        _spot_or_perp_market_type(cancel.get("marketType"))
+
+
+def _validate_cancel_all_market(action: Mapping[str, Any]) -> None:
+    _spot_or_perp_market_type(action.get("marketType"))
+
+
 class TradeAPI(BaseAPI):
     """Authenticated Spot and Perps trade operations."""
 
@@ -35,16 +68,35 @@ class TradeAPI(BaseAPI):
     endpoint_names = TRADE_ENDPOINTS
 
     def place_order(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
-        return self._post(f"{self._ROOT}/place-order", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/place-order",
+            signed_transaction,
+            expected_action_type="placeOrder",
+            action_validator=_validate_order_markets,
+        )
 
     def cancel_order(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
-        return self._post(f"{self._ROOT}/cancel-order", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/cancel-order",
+            signed_transaction,
+            expected_action_type="cancel",
+            action_validator=_validate_cancel_markets,
+        )
 
     def modify_order(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
-        return self._post(f"{self._ROOT}/modify-order", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/modify-order",
+            signed_transaction,
+            expected_action_type="modify",
+        )
 
     def cancel_all_after(self, signed_transaction: Any) -> RestList[WriteResult]:
-        return self._post(f"{self._ROOT}/cancel-all-after", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/cancel-all-after",
+            signed_transaction,
+            expected_action_type="cancelAll",
+            action_validator=_validate_cancel_all_market,
+        )
 
     def transaction(self, tx_hash: str) -> RestList[TransactionReceipt]:
         return self._get(f"{self._ROOT}/transaction", txHash=tx_hash)

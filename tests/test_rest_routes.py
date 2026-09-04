@@ -65,11 +65,14 @@ def test_market_inventory_contains_exactly_twelve_public_routes() -> None:
 def test_trade_inventory_contains_exactly_nine_authenticated_routes() -> None:
     recorder = Recorder()
     api = TradeAPI(recorder)  # type: ignore[arg-type]
-    tx = {"action": {"size": "0.000000000000000001"}, "nonce": 1}
-    api.place_order(tx)
-    api.cancel_order(tx)
-    api.modify_order(tx)
-    api.cancel_all_after(tx)
+    place_tx = {"action": {"type": "placeOrder", "orders": [{"marketType": "spot"}]}, "nonce": 1}
+    cancel_tx = {"action": {"type": "cancel", "cancels": [{"marketType": "spot"}]}, "nonce": 2}
+    modify_tx = {"action": {"type": "modify", "modifies": [{"oid": "1"}]}, "nonce": 3}
+    cancel_all_tx = {"action": {"type": "cancelAll", "marketType": "spot"}, "nonce": 4}
+    api.place_order(place_tx)
+    api.cancel_order(cancel_tx)
+    api.modify_order(modify_tx)
+    api.cancel_all_after(cancel_all_tx)
     api.transaction("0xhash")
     api.order(client_order_id="cloid", vault_address="0xvault")
     api.orders_pending(
@@ -97,7 +100,7 @@ def test_trade_inventory_contains_exactly_nine_authenticated_routes() -> None:
         ("GET", "/api/v5/exchangeos/trade/orders-history", True),
         ("GET", "/api/v5/exchangeos/trade/fills", True),
     ]
-    assert recorder.calls[0][4] is tx
+    assert recorder.calls[0][4] is place_tx
     assert recorder.calls[5][3] == {
         "oid": None,
         "clientOrderId": "cloid",
@@ -125,13 +128,12 @@ def test_trade_inventory_contains_exactly_nine_authenticated_routes() -> None:
 def test_account_inventory_contains_exactly_fourteen_authenticated_routes() -> None:
     recorder = Recorder()
     api = AccountAPI(recorder)  # type: ignore[arg-type]
-    tx = {"action": {}, "nonce": 1}
-    api.account_transfer(tx)
-    api.create_sub_account(tx)
-    api.set_leverage(tx)
-    api.set_margin_mode(tx)
-    api.set_position_mode(tx)
-    api.adjust_isolated_margin(tx)
+    api.account_transfer({"action": {"type": "subAccountTransfer"}, "nonce": 1})
+    api.create_sub_account({"action": {"type": "createSubAccount"}, "nonce": 2})
+    api.set_leverage({"action": {"type": "updateLeverage"}, "nonce": 3})
+    api.set_margin_mode({"action": {"type": "updateMarginMode"}, "nonce": 4})
+    api.set_position_mode({"action": {"type": "updatePositionMode"}, "nonce": 5})
+    api.adjust_isolated_margin({"action": {"type": "updateIsolatedMargin"}, "nonce": 6})
     api.balance(vault_address="0xvault", point_board=True)
     api.positions(asset_id=602, vault_address="0xvault", point_board=False)
     api.max_size(602, price="0.123456789012345678", reduce_only=True)
@@ -263,15 +265,18 @@ def test_write_body_must_be_mapping_or_signed_transaction() -> None:
 def test_write_body_accepts_to_wire_without_coercing_values() -> None:
     class Signed:
         def to_wire(self):
-            return {"action": {"price": "0.000000000000000001"}, "nonce": 7}
+            return {
+                "action": {
+                    "type": "placeOrder",
+                    "orders": [{"marketType": "spot", "price": "0.000000000000000001"}],
+                },
+                "nonce": 7,
+            }
 
     recorder = Recorder()
     api = TradeAPI(recorder)  # type: ignore[arg-type]
     api.place_order(Signed())
-    assert recorder.calls[0][4] == {
-        "action": {"price": "0.000000000000000001"},
-        "nonce": 7,
-    }
+    assert recorder.calls[0][4]["action"]["orders"][0]["price"] == "0.000000000000000001"
 
 
 def test_write_body_rejects_invalid_to_wire_result() -> None:
@@ -283,4 +288,46 @@ def test_write_body_rejects_invalid_to_wire_result() -> None:
     api = TradeAPI(recorder)  # type: ignore[arg-type]
     with pytest.raises(ValidationError):
         api.place_order(InvalidSigned())
+    assert recorder.calls == []
+
+
+@pytest.mark.parametrize(
+    ("method", "transaction"),
+    (
+        (
+            "place_order",
+            {
+                "action": {"type": "placeOrder", "orders": [{"marketType": "prediction"}]},
+                "nonce": 1,
+            },
+        ),
+        (
+            "cancel_order",
+            {"action": {"type": "cancel", "cancels": [{"marketType": "prediction"}]}, "nonce": 1},
+        ),
+        (
+            "cancel_all_after",
+            {"action": {"type": "cancelAll", "marketType": "prediction"}, "nonce": 1},
+        ),
+    ),
+)
+def test_trade_writes_reject_prediction_transactions_before_io(
+    method: str, transaction: dict[str, Any]
+) -> None:
+    recorder = Recorder()
+    api = TradeAPI(recorder)  # type: ignore[arg-type]
+
+    with pytest.raises(ValidationError, match="only spot or perp"):
+        getattr(api, method)(transaction)
+
+    assert recorder.calls == []
+
+
+def test_signed_rest_writes_reject_an_action_for_another_endpoint_before_io() -> None:
+    recorder = Recorder()
+    api = AccountAPI(recorder)  # type: ignore[arg-type]
+
+    with pytest.raises(ValidationError, match="createSubAccount"):
+        api.create_sub_account({"action": {"type": "predictionSplit"}, "nonce": 1})
+
     assert recorder.calls == []

@@ -26,7 +26,7 @@ Run the examples from the repository root in this order:
 
 | Step | Example | Purpose | Sends a write |
 |---|---|---|---|
-| 1 | `public_rest.ipynb` | Query Spot/Perps instruments and tickers | No |
+| 1 | `public_rest.ipynb` | Query Spot/Perps instruments and tickers; handle REST failures | No |
 | 2 | `account_queries.ipynb` | Check balances and positions | No |
 | 3 | `place_order.ipynb` | Build, sign, and submit a Perps limit order | **Yes** |
 | 4 | `order_queries.ipynb` | Check pending orders, history, and fills | No |

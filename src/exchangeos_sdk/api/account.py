@@ -41,22 +41,46 @@ class AccountAPI(BaseAPI):
     endpoint_names = ACCOUNT_ENDPOINTS
 
     def account_transfer(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
-        return self._post(f"{self._ROOT}/account-transfer", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/account-transfer",
+            signed_transaction,
+            expected_action_type="subAccountTransfer",
+        )
 
     def create_sub_account(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
-        return self._post(f"{self._ROOT}/create-sub-account", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/create-sub-account",
+            signed_transaction,
+            expected_action_type="createSubAccount",
+        )
 
     def set_leverage(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
-        return self._post(f"{self._ROOT}/set-leverage", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/set-leverage",
+            signed_transaction,
+            expected_action_type="updateLeverage",
+        )
 
     def set_margin_mode(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
-        return self._post(f"{self._ROOT}/set-margin-mode", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/set-margin-mode",
+            signed_transaction,
+            expected_action_type="updateMarginMode",
+        )
 
     def set_position_mode(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
-        return self._post(f"{self._ROOT}/set-position-mode", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/set-position-mode",
+            signed_transaction,
+            expected_action_type="updatePositionMode",
+        )
 
     def adjust_isolated_margin(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
-        return self._post(f"{self._ROOT}/adjust-isolated-margin", signed_transaction)
+        return self._post(
+            f"{self._ROOT}/adjust-isolated-margin",
+            signed_transaction,
+            expected_action_type="updateIsolatedMargin",
+        )
 
     def balance(
         self, *, vault_address: str | None = None, point_board: bool | None = None

@@ -73,7 +73,10 @@ when empty.
 | `Noop` | `noop` | none |
 
 The final five entries preserve the existing Outcomes signing protocol only;
-they do not imply Outcomes REST or WebSocket support.
+they do not imply Outcomes REST or WebSocket support. In particular,
+`MarketType.PREDICTION` can be used only for standalone compatibility signing.
+The public `trade` and `account` POST methods reject Prediction actions and
+Prediction `marketType` values before network I/O.
 
 Trade helper functions build order items, cancel items, modify items, Perps
 market specifications, and limit/trigger order types. Account helpers cover

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from ..exceptions import ValidationError
@@ -27,6 +27,17 @@ def signed_body(value: Any) -> Mapping[str, Any]:
     raise ValidationError("signed_transaction must be a mapping or expose to_wire()")
 
 
+def signed_action(body: Mapping[str, Any], expected_type: str) -> Mapping[str, Any]:
+    """Return an envelope action after confirming its endpoint-specific type."""
+
+    action = body.get("action")
+    if not isinstance(action, Mapping):
+        raise ValidationError("signed_transaction.action must be a mapping")
+    if action.get("type") != expected_type:
+        raise ValidationError(f"signed_transaction action must have type {expected_type!r}")
+    return action
+
+
 def path_id(value: str, name: str) -> str:
     if not value or not all(char.isalnum() or char in "_-" for char in value):
         raise ValidationError(f"{name} must contain only letters, digits, '_' or '-'")
@@ -45,13 +56,24 @@ class BaseAPI:
     def _public_get(self, path: str, **params: Any) -> ResponseT:  # type: ignore[type-var]
         return cast(ResponseT, self._client.request("GET", path, params=params, auth=False))
 
-    def _post(self, path: str, signed_transaction: Any) -> ResponseT:  # type: ignore[type-var]
+    def _post(
+        self,
+        path: str,
+        signed_transaction: Any,
+        *,
+        expected_action_type: str,
+        action_validator: Callable[[Mapping[str, Any]], None] | None = None,
+    ) -> ResponseT:  # type: ignore[type-var]
+        body = signed_body(signed_transaction)
+        action = signed_action(body, expected_action_type)
+        if action_validator is not None:
+            action_validator(action)
         return cast(
             ResponseT,
             self._client.request(
                 "POST",
                 path,
-                json_body=signed_body(signed_transaction),
+                json_body=body,
                 auth=True,
             ),
         )

@@ -100,6 +100,52 @@ account ownership, and other business rules are validated by ExchangeOS. A
 rejected value raises `APIError` with the server's code and message, keeping the
 deployed API as the single source of truth.
 
+## Error handling
+
+All SDK exceptions inherit from `ExchangeOSError`. Catch the most specific
+error first:
+
+```python
+from exchangeos_sdk import (
+    APIError,
+    AuthenticationError,
+    RateLimitError,
+    SigningError,
+    TransportError,
+    ValidationError,
+)
+
+try:
+    tickers = client.market.tickers(asset_id="2")
+except RateLimitError as error:
+    # HTTP 429. `retry_after` is populated from Retry-After when available.
+    wait_seconds = error.retry_after or 1.0
+    print(f"Rate limited; retry after {wait_seconds}s (request_id={error.request_id})")
+except AuthenticationError as error:
+    # Correct or refresh API credentials / bearer token before retrying.
+    print(error.code, error.message, error.request_id)
+except APIError as error:
+    # ExchangeOS business or request error.
+    print(error.code, error.message, error.status_code, error.request_id)
+except TransportError as error:
+    # Network/HTTP transport failure. Retry only when application policy permits it.
+    print(error.method, error.path)
+except (ValidationError, SigningError) as error:
+    # Local input or signing error; no request was sent.
+    print(error)
+```
+
+`APIError` exposes `code`, `message`, `status_code`, `request_id`, `data`, and
+the decoded response envelope as `response`. `AuthenticationError` and
+`RateLimitError` are `APIError` subclasses, so they must be caught first.
+
+The SDK retries idempotent reads according to `RetryPolicy`; it never retries
+writes. Do not blindly retry a signed POST after `TransportError`, because the
+transaction might have reached ExchangeOS. Instead, use the transaction hash
+or related order state to determine the outcome before constructing a new
+transaction. In production logs, prefer the error code, status, and request ID
+over the complete `response`, which can contain account-specific data.
+
 ## Environment
 
 `Environment` is the single deployment setting. It prevents a REST request

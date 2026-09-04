@@ -83,7 +83,14 @@ def test_query_is_included_in_request_signature() -> None:
 
 
 def test_authenticated_body_is_exactly_the_signed_body() -> None:
-    body = {"action": {"type": "cancelAll", "size": "1.000000000000000001"}, "nonce": 1}
+    body = {
+        "action": {
+            "type": "cancelAll",
+            "marketType": "perp",
+            "size": "1.000000000000000001",
+        },
+        "nonce": 1,
+    }
 
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["OK-ACCESS-KEY"] == "id"
@@ -203,7 +210,9 @@ def test_read_transport_error_retries_but_write_never_retries() -> None:
         options=ClientOptions(retry=RetryPolicy(max_retries=9, backoff=0)),
     )
     with pytest.raises(TransportError) as caught:
-        client.trade.place_order({"action": {}, "nonce": 1})
+        client.trade.place_order(
+            {"action": {"type": "placeOrder", "orders": [{"marketType": "spot"}]}, "nonce": 1}
+        )
     assert write_calls == 1
     assert caught.value.method == "POST"
     http.close()
