@@ -90,7 +90,7 @@ async def eventually(predicate: Any, *, timeout: float = 1.0) -> None:
 
 def test_channel_inventory_and_canonical_names() -> None:
     assert len(EXCHANGEOS_PUBLIC_CHANNELS) == 15
-    assert len(EXCHANGEOS_PRIVATE_CHANNELS) == 10
+    assert len(EXCHANGEOS_PRIVATE_CHANNELS) == 9
     assert all(" " not in channel for channel in EXCHANGEOS_PUBLIC_CHANNELS)
 
 
@@ -132,6 +132,8 @@ def test_candle_family_and_subscription_key_properties() -> None:
         ws._validate_channel("exchangeos-tickers", private=True)
     with pytest.raises(ValueError, match="public channel"):
         ws._validate_channel("pm-candle1D", private=False)
+    with pytest.raises(ValueError, match="private channel"):
+        ws._validate_channel("exchangeos-notification", private=True)
 
 
 @pytest.mark.parametrize(
@@ -169,7 +171,7 @@ async def test_public_subscribe_deduplicates_wire_frames() -> None:
 
 @pytest.mark.asyncio
 async def test_private_login_precedes_subscription_and_retains_vault() -> None:
-    socket = FakeSocket([frame({"event": "login", "code": "0"})])
+    socket = FakeSocket([frame({"event": "login-wallet", "code": "0"})])
     credentials = Credentials(api_key="key", secret_key="secret", passphrase="pass")
     ws = ExchangeOSWebSocket(
         connector=Connector([socket]), credentials=credentials, ping_interval=60
@@ -177,7 +179,7 @@ async def test_private_login_precedes_subscription_and_retains_vault() -> None:
     await ws.connect()
     await ws.subscribe_private("exchangeos-user-order-status", vault_address="0x123", assetId=7)
     decoded = [json.loads(item) for item in socket.sent]
-    assert decoded[0]["op"] == "login"
+    assert decoded[0]["op"] == "login-wallet"
     assert decoded[1] == {
         "op": "subscribe",
         "args": [
@@ -205,8 +207,8 @@ async def test_private_subscribe_without_auth_is_rejected() -> None:
 
 @pytest.mark.asyncio
 async def test_reconnect_replays_once_with_vault(monkeypatch: Any) -> None:
-    first = FakeSocket([frame({"event": "login", "code": "0"})])
-    second = FakeSocket([frame({"event": "login", "code": "0"})])
+    first = FakeSocket([frame({"event": "login-wallet", "code": "0"})])
+    second = FakeSocket([frame({"event": "login-wallet", "code": "0"})])
     connector = Connector([first, second])
     credentials = Credentials(api_key="key", secret_key="secret", passphrase="pass")
     monkeypatch.setattr("exchangeos_sdk.websocket.transport.random.uniform", lambda *_: 0)
@@ -223,7 +225,7 @@ async def test_reconnect_replays_once_with_vault(monkeypatch: Any) -> None:
     await first.close()
     await eventually(lambda: connector.calls >= 2 and ws.connected)
     replay = [json.loads(item) for item in second.sent]
-    assert [item["op"] for item in replay] == ["login", "subscribe"]
+    assert [item["op"] for item in replay] == ["login-wallet", "subscribe"]
     assert replay[1]["args"] == [{"channel": "exchangeos-account", "vaultAddress": "0xabc"}]
     await ws.close()
 
@@ -523,7 +525,7 @@ async def test_send_while_disconnected_and_public_without_asset() -> None:
 
 
 @pytest.mark.asyncio
-async def test_bearer_auth_private_subscription_and_header() -> None:
+async def test_bearer_auth_cannot_subscribe_private_channels() -> None:
     socket = FakeSocket()
     connector = Connector([socket])
     ws = ExchangeOSWebSocket(
@@ -532,7 +534,8 @@ async def test_bearer_auth_private_subscription_and_header() -> None:
     await ws.connect()
     assert ws.authenticated
     assert ws.authentication_mode == "bearer-upgrade"
-    await ws.subscribe_private("exchangeos-account")
+    with pytest.raises(AuthenticationError, match="CEX API credentials"):
+        await ws.subscribe_private("exchangeos-account")
     assert connector.kwargs[0]["additional_headers"]["Authorization"].startswith("Bearer ")
     await ws.close()
 
@@ -540,7 +543,7 @@ async def test_bearer_auth_private_subscription_and_header() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "response",
-    ["not-json", frame({"event": "login", "code": "1", "msg": "denied"})],
+    ["not-json", frame({"event": "login-wallet", "code": "1", "msg": "denied"})],
 )
 async def test_login_failure_is_not_retried(response: str) -> None:
     socket = FakeSocket([response])

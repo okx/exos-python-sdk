@@ -165,8 +165,10 @@ class ExchangeOSWebSocket:
         self, channel: str, *, vault_address: str | None = None, **params: Any
     ) -> None:
         self._validate_channel(channel, private=True)
-        if not (self.credentials or self.bearer_token):
-            raise AuthenticationError("private WebSocket channels require credentials")
+        if not self.credentials:
+            raise AuthenticationError(
+                "ExchangeOS private WebSocket channels require CEX API credentials"
+            )
         if not self._authenticated.is_set():
             raise AuthenticationError("private subscriptions require a completed WebSocket login")
         if vault_address is not None:
@@ -179,8 +181,10 @@ class ExchangeOSWebSocket:
         """Compatibility API; channel inventory determines public/private access."""
 
         if matches_channel(channel, PRIVATE_CHANNELS):
-            if not (self.credentials or self.bearer_token):
-                raise AuthenticationError("private WebSocket channels require credentials")
+            if not self.credentials:
+                raise AuthenticationError(
+                    "ExchangeOS private WebSocket channels require CEX API credentials"
+                )
             if not self._authenticated.is_set():
                 raise AuthenticationError(
                     "private subscriptions require a completed WebSocket login"
@@ -344,9 +348,14 @@ class ExchangeOSWebSocket:
 
     async def _login(self, ws: Any) -> None:
         if self.credentials is None:
-            raise AuthenticationError("private WebSocket channels require credentials")
+            raise AuthenticationError(
+                "ExchangeOS private WebSocket channels require CEX API credentials"
+            )
+        login_args: dict[str, Any] = dict(websocket_login_args(self.credentials))
+        operation = "login-wallet"
+        expected_events = {"login-wallet"}
         await ws.send(
-            self._encode({"op": "login", "args": [websocket_login_args(self.credentials)]})
+            self._encode({"op": operation, "args": [login_args]})
         )
         try:
             raw = await asyncio.wait_for(ws.recv(), timeout=30)
@@ -354,7 +363,7 @@ class ExchangeOSWebSocket:
             response = json.loads(raw_text)
         except (TimeoutError, TypeError, json.JSONDecodeError) as exc:
             raise AuthenticationError("WebSocket login response was invalid or timed out") from exc
-        if response.get("event") != "login" or str(response.get("code", "0")) != "0":
+        if response.get("event") not in expected_events or str(response.get("code", "0")) != "0":
             raise AuthenticationError(
                 f"WebSocket login failed: {response.get('msg', 'unknown error')}"
             )

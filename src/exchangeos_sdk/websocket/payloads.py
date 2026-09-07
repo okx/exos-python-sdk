@@ -71,13 +71,6 @@ class LedgerUpdate(TypedRestObject):
     users: list[str]
 
 
-class Notification(TypedRestObject):
-    event: str
-    code: str
-    message: str
-    ts: str
-
-
 class AccountInfo(TypedRestObject):
     role_id: str
     position_mode: str
@@ -153,7 +146,6 @@ CHANNEL_PAYLOAD_MODELS: dict[str, type[TypedRestObject]] = {
     "exchangeos-user-fundings": FundingsPayload,
     "exchangeos-user-ledger-updates": LedgerUpdatesPayload,
     "exchangeos-setting-updates": SettingUpdates,
-    "exchangeos-notification": Notification,
 }
 
 
@@ -191,7 +183,6 @@ __all__ = [
     "FundingsPayload",
     "LedgerUpdate",
     "LedgerUpdatesPayload",
-    "Notification",
     "OrdersPayload",
     "PublicTrade",
     "SettingUpdates",

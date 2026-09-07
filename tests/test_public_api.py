@@ -111,7 +111,7 @@ def test_action_variants_follow_rust_tagged_union_layout() -> None:
 
 def test_channel_families_are_public_and_disjoint_by_privacy() -> None:
     assert len(sdk.EXCHANGEOS_PUBLIC_CHANNELS) == 15
-    assert len(sdk.EXCHANGEOS_PRIVATE_CHANNELS) == 10
+    assert len(sdk.EXCHANGEOS_PRIVATE_CHANNELS) == 9
     assert not hasattr(sdk, "OUTCOMES_PUBLIC_CHANNELS")
     assert not hasattr(sdk, "OUTCOMES_PRIVATE_CHANNELS")
     assert set(sdk.PUBLIC_CHANNELS).isdisjoint(sdk.PRIVATE_CHANNELS)

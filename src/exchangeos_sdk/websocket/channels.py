@@ -31,7 +31,6 @@ EXCHANGEOS_PRIVATE_CHANNELS = (
     "exchangeos-user-fundings",
     "exchangeos-user-ledger-updates",
     "exchangeos-setting-updates",
-    "exchangeos-notification",
 )
 PUBLIC_CHANNELS = EXCHANGEOS_PUBLIC_CHANNELS
 PRIVATE_CHANNELS = EXCHANGEOS_PRIVATE_CHANNELS
