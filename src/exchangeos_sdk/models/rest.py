@@ -118,8 +118,15 @@ class TypedRestObject(RestObject):
         wire_name = self._aliases.get(name, _snake_to_camel(name))
         try:
             return self[wire_name]
-        except KeyError as exc:
-            raise AttributeError(name) from exc
+        except KeyError:
+            # Forward-compatible responses may contain fields that were not
+            # present when this SDK version was released. Resolve their
+            # camelCase wire key dynamically instead of requiring a model
+            # release for every OpenAPI/TradeZone field addition.
+            for key, value in self.items():
+                if _camel_to_snake(key) == name:
+                    return value
+            raise AttributeError(name) from None
 
 
 RestItem = TypeVar("RestItem")
@@ -185,3 +192,14 @@ def parse_rest_data(
 def _snake_to_camel(value: str) -> str:
     head, *tail = value.split("_")
     return head + "".join(part[:1].upper() + part[1:] for part in tail)
+
+
+def _camel_to_snake(value: str) -> str:
+    result: list[str] = []
+    for char in value:
+        if char.isupper():
+            result.append("_")
+            result.append(char.lower())
+        else:
+            result.append(char)
+    return "".join(result).lstrip("_")

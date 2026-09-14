@@ -192,23 +192,22 @@ def test_account_inventory_contains_exactly_fourteen_authenticated_routes() -> N
     }
 
 
-def test_trade_order_requires_exactly_one_identifier_before_io() -> None:
+def test_trade_order_forwards_identifier_combinations_to_backend() -> None:
     recorder = Recorder()
     api = TradeAPI(recorder)  # type: ignore[arg-type]
-    with pytest.raises(ValidationError):
-        api.order()
-    with pytest.raises(ValidationError):
-        api.order(oid="1", client_order_id="cloid")
-    assert recorder.calls == []
+    api.order()
+    api.order(oid="1", client_order_id="cloid")
+    assert len(recorder.calls) == 2
+    assert recorder.calls[0][3] == {"oid": None, "clientOrderId": None, "vaultAddress": None}
+    assert recorder.calls[1][3] == {"oid": "1", "clientOrderId": "cloid", "vaultAddress": None}
 
 
-def test_tickers_requires_a_selector_before_io() -> None:
+def test_tickers_forwards_missing_selector_to_backend() -> None:
     recorder = Recorder()
     market = MarketAPI(recorder)  # type: ignore[arg-type]
 
-    with pytest.raises(ValidationError, match="requires"):
-        market.tickers()
-    assert recorder.calls == []
+    market.tickers()
+    assert recorder.calls[0][3] == {"marketType": None, "assetId": None}
 
 
 def test_instruments_forwards_market_type_and_asset_id_together() -> None:
@@ -216,7 +215,6 @@ def test_instruments_forwards_market_type_and_asset_id_together() -> None:
     market = MarketAPI(recorder)  # type: ignore[arg-type]
 
     market.instruments(market_type="spot", asset_id="252201")
-
     assert recorder.calls[0][3] == {"marketType": "spot", "assetId": "252201"}
 
 
@@ -279,6 +277,40 @@ def test_write_body_accepts_to_wire_without_coercing_values() -> None:
     assert recorder.calls[0][4]["action"]["orders"][0]["price"] == "0.000000000000000001"
 
 
+def test_place_order_forwards_missing_market_type_to_backend() -> None:
+    class Signed:
+        def to_wire(self):
+            return {
+                "action": {
+                    "type": "placeOrder",
+                    "orders": [{"assetId": "1", "price": "2", "size": "3"}],
+                },
+                "nonce": 7,
+            }
+
+    recorder = Recorder()
+    api = TradeAPI(recorder)  # type: ignore[arg-type]
+    api.place_order(Signed())
+    assert "marketType" not in recorder.calls[0][4]["action"]["orders"][0]
+
+
+def test_cancel_order_allows_omitted_market_type() -> None:
+    class Signed:
+        def to_wire(self):
+            return {
+                "action": {
+                    "type": "cancel",
+                    "cancels": [{"assetId": "1", "oid": "7"}],
+                },
+                "nonce": 7,
+            }
+
+    recorder = Recorder()
+    api = TradeAPI(recorder)  # type: ignore[arg-type]
+    api.cancel_order(Signed())
+    assert "marketType" not in recorder.calls[0][4]["action"]["cancels"][0]
+
+
 def test_write_body_rejects_invalid_to_wire_result() -> None:
     class InvalidSigned:
         def to_wire(self):
@@ -297,7 +329,10 @@ def test_write_body_rejects_invalid_to_wire_result() -> None:
         (
             "place_order",
             {
-                "action": {"type": "placeOrder", "orders": [{"marketType": "prediction"}]},
+                "action": {
+                    "type": "placeOrder",
+                    "orders": [{"marketType": "prediction"}],
+                },
                 "nonce": 1,
             },
         ),
@@ -311,16 +346,14 @@ def test_write_body_rejects_invalid_to_wire_result() -> None:
         ),
     ),
 )
-def test_trade_writes_reject_prediction_transactions_before_io(
+def test_trade_writes_forward_market_types_to_backend(
     method: str, transaction: dict[str, Any]
 ) -> None:
     recorder = Recorder()
     api = TradeAPI(recorder)  # type: ignore[arg-type]
 
-    with pytest.raises(ValidationError, match="only spot or perp"):
-        getattr(api, method)(transaction)
-
-    assert recorder.calls == []
+    getattr(api, method)(transaction)
+    assert recorder.calls[0][4] == transaction
 
 
 def test_signed_rest_writes_reject_an_action_for_another_endpoint_before_io() -> None:

@@ -173,7 +173,11 @@ class CancelAll(Action):
         return build_action(
             self.type,
             assetIds=[string_value("asset_id", item) for item in self.asset_ids],
-            marketType=choice("market_type", self.market_type, MarketType),
+            marketType=choice(
+                "market_type",
+                self.market_type,
+                {MarketType.SPOT.value, MarketType.PERP.value},
+            ),
         )
 
 

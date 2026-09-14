@@ -74,12 +74,21 @@ when empty.
 
 The final five entries preserve the existing Outcomes signing protocol only;
 they do not imply Outcomes REST or WebSocket support. In particular,
-`MarketType.PREDICTION` can be used only for standalone compatibility signing.
-The public `trade` and `account` POST methods reject Prediction actions and
-Prediction `marketType` values before network I/O.
+`MarketType.PREDICTION` is retained only for standalone compatibility signing.
+Trade endpoint wrappers forward raw signed mappings to OpenAPI, which owns
+the current market/business validation. The typed `cancelAll` helper still
+restricts its market type to Spot or Perps because those are the SDK trade
+surface variants.
 
 Trade helper functions build order items, cancel items, modify items, Perps
-market specifications, and limit/trigger order types. Account helpers cover
+market specifications, and limit/trigger order types. `order_item()` requires
+the signed action's `market_type`; `cancel_item()` accepts an optional
+`market_type` and omits it from the wire when absent. `client_order_id` is
+optional in the signing helper; OpenAPI place-order requests must provide a
+valid API client order ID.
+`price_amend_type` may be set to `noAmend` or `clampToLimit`. `modify_item()` requires
+exactly one of `oid` or `client_order_id`, matching the wire fields `oid` and
+`clientOrderId`. Account helpers cover
 leverage, margin mode, position mode, isolated margin, subaccount creation, and
 subaccount transfer. Outcomes helpers remain signing compatibility wrappers.
 

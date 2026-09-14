@@ -1,9 +1,7 @@
 """Authenticated Spot and Perps trade API."""
 
-from collections.abc import Mapping, Sequence
 from typing import Any
 
-from ..exceptions import ValidationError
 from ..models import (
     FillsPage,
     Order,
@@ -28,39 +26,6 @@ TRADE_ENDPOINTS = (
     "fills",
 )
 
-
-def _spot_or_perp_market_type(value: Any) -> None:
-    if isinstance(value, str) and value in {"spot", "perp"}:
-        return
-    if isinstance(value, Mapping) and set(value) == {"perp"} and isinstance(value["perp"], Mapping):
-        return
-    raise ValidationError("ExchangeOS Trade writes support only spot or perp marketType")
-
-
-def _validate_order_markets(action: Mapping[str, Any]) -> None:
-    orders = action.get("orders")
-    if not isinstance(orders, Sequence) or isinstance(orders, (str, bytes)):
-        raise ValidationError("placeOrder action orders must be a sequence")
-    for order in orders:
-        if not isinstance(order, Mapping):
-            raise ValidationError("placeOrder action orders must contain mappings")
-        _spot_or_perp_market_type(order.get("marketType"))
-
-
-def _validate_cancel_markets(action: Mapping[str, Any]) -> None:
-    cancels = action.get("cancels")
-    if not isinstance(cancels, Sequence) or isinstance(cancels, (str, bytes)):
-        raise ValidationError("cancel action cancels must be a sequence")
-    for cancel in cancels:
-        if not isinstance(cancel, Mapping):
-            raise ValidationError("cancel action cancels must contain mappings")
-        _spot_or_perp_market_type(cancel.get("marketType"))
-
-
-def _validate_cancel_all_market(action: Mapping[str, Any]) -> None:
-    _spot_or_perp_market_type(action.get("marketType"))
-
-
 class TradeAPI(BaseAPI):
     """Authenticated Spot and Perps trade operations."""
 
@@ -72,7 +37,6 @@ class TradeAPI(BaseAPI):
             f"{self._ROOT}/place-order",
             signed_transaction,
             expected_action_type="placeOrder",
-            action_validator=_validate_order_markets,
         )
 
     def cancel_order(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
@@ -80,7 +44,6 @@ class TradeAPI(BaseAPI):
             f"{self._ROOT}/cancel-order",
             signed_transaction,
             expected_action_type="cancel",
-            action_validator=_validate_cancel_markets,
         )
 
     def modify_order(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
@@ -95,7 +58,6 @@ class TradeAPI(BaseAPI):
             f"{self._ROOT}/cancel-all-after",
             signed_transaction,
             expected_action_type="cancelAll",
-            action_validator=_validate_cancel_all_market,
         )
 
     def transaction(self, tx_hash: str) -> RestList[TransactionReceipt]:
@@ -108,10 +70,6 @@ class TradeAPI(BaseAPI):
         client_order_id: str | None = None,
         vault_address: str | None = None,
     ) -> RestList[Order]:
-        has_oid = oid is not None and bool(oid.strip())
-        has_client_order_id = client_order_id is not None and bool(client_order_id.strip())
-        if has_oid == has_client_order_id:
-            raise ValidationError("exactly one of oid or client_order_id is required")
         return self._get(
             f"{self._ROOT}/order",
             oid=oid,

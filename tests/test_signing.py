@@ -25,6 +25,7 @@ from exchangeos_sdk.signing import (
     PredictionMerge,
     PredictionRedeem,
     PredictionSplit,
+    PriceAmendType,
     Region,
     Signature,
     SignedTransaction,
@@ -87,7 +88,7 @@ def test_rust_action_variant_field_order_is_preserved() -> None:
         (PredictionRedeem("1"), ["type", "marketId"]),
         (PlaceOrder([order]), ["type", "grouping", "orders"]),
         (Cancel([cancel]), ["type", "cancels"]),
-        (CancelAll([], "prediction"), ["type", "assetIds", "marketType"]),
+        (CancelAll([], "spot"), ["type", "assetIds", "marketType"]),
     )
     for action, expected_keys in actions_and_keys:
         assert list(action.to_wire()) == expected_keys
@@ -411,6 +412,7 @@ def test_action_enums_emit_the_same_wire_values_as_string_inputs() -> None:
         asset_id="1",
         side=OrderSide.BUY,
         market_type=MarketType.SPOT,
+        client_order_id="0x03333333333333333333333333333333",
         price="2",
         size="3",
         size_type=OrderSizeType.QUOTE,
@@ -420,10 +422,11 @@ def test_action_enums_emit_the_same_wire_values_as_string_inputs() -> None:
         asset_id="1",
         side="buy",
         market_type="spot",
+        client_order_id="0x03333333333333333333333333333333",
         price="2",
         size="3",
         size_type="quote",
-        order_type=limit_order_type("postOnly"),
+        order_type=limit_order_type("alo"),
     )
     assert enum_order == string_order
     assert place_order_action([enum_order], grouping=ActionGrouping.NA) == place_order_action(
@@ -503,7 +506,8 @@ def test_limit_order_type_all_option_branches() -> None:
     assert limit_order_type("gtd", expires_after=123) == {
         "limit": {"tif": {"gtd": {"expiresAfter": 123}}}
     }
-    assert limit_order_type("postOnly") == {"limit": {"tif": "postOnly"}}
+    assert limit_order_type("alo") == {"limit": {"tif": "alo"}}
+    assert limit_order_type("postOnly") == {"limit": {"tif": "alo"}}
     with pytest.raises(SigningError, match="only valid for gtd"):
         limit_order_type("gtc", expires_after=123)
     with pytest.raises(SigningError, match="unsigned 64-bit"):
@@ -545,6 +549,29 @@ def test_order_item_perp_quote_and_validation_branches() -> None:
     assert item["side"] == "sell"
     assert item["sizeType"] == "quote"
     assert item["marketType"]["perp"]["positionSide"] == "short"
+
+
+def test_order_item_price_amend_type_is_emitted_when_requested() -> None:
+    item = order_item(
+        asset_id="1",
+        side="buy",
+        market_type="spot",
+        price="2",
+        size="3",
+        price_amend_type=PriceAmendType.CLAMP_TO_LIMIT,
+    )
+    assert item["priceAmendType"] == "clampToLimit"
+    assert list(item)[-2:] == ["orderType", "priceAmendType"]
+    assert "priceAmendType" not in order_item(
+        asset_id="1",
+        side="buy",
+        market_type="spot",
+        price="2",
+        size="3",
+        price_amend_type=PriceAmendType.NO_AMEND,
+    )
+
+
     with pytest.raises(SigningError, match="reduce_only"):
         order_item(asset_id="1", side="buy", market_type="spot", price="2", size="3", reduce_only=1)
     with pytest.raises(SigningError, match="perp market"):
@@ -558,6 +585,11 @@ def test_order_item_perp_quote_and_validation_branches() -> None:
             size="3",
             client_order_id="bad",
         )
+
+
+def test_order_item_allows_omitted_client_order_id() -> None:
+    item = order_item(asset_id="1", side="buy", market_type="spot", price="2", size="3")
+    assert "clientOrderId" not in item
 
 
 def test_place_and_cancel_action_optional_and_empty_branches() -> None:
@@ -581,6 +613,7 @@ def test_place_and_cancel_action_optional_and_empty_branches() -> None:
         cancel_item(asset_id="1", market_type=perp_market(), client_order_id=cloid)["clientOrderId"]
         == cloid
     )
+    assert cancel_item(asset_id="1", oid="7") == {"assetId": "1", "oid": "7"}
 
 
 def test_modify_all_optional_fields_and_empty_action() -> None:
@@ -589,7 +622,23 @@ def test_modify_all_optional_fields_and_empty_action() -> None:
         "assetId": "2",
         "size": "3",
     }
+    client_order_id = "0x0197a98c91312671ca83f15ccbd5186f"
+    assert modify_item(
+        client_order_id=client_order_id,
+        asset_id="2",
+        price="4",
+    ) == {
+        "clientOrderId": client_order_id,
+        "assetId": "2",
+        "price": "4",
+    }
     assert modify_item(oid="1", asset_id="2", order_type=limit_order_type())["orderType"]
+    with pytest.raises(SigningError, match="exactly one"):
+        modify_item(asset_id="2", size="3")
+    with pytest.raises(SigningError, match="exactly one"):
+        modify_item(oid="1", client_order_id=client_order_id, asset_id="2", size="3")
+    with pytest.raises(SigningError, match="client_order_id"):
+        modify_item(client_order_id="bad", asset_id="2", size="3")
     with pytest.raises(SigningError, match="modifies"):
         modify_action([])
 

@@ -57,8 +57,16 @@ class OrderTimeInForce(str, Enum):
     GTC = "gtc"
     IOC = "ioc"
     FOK = "fok"
-    POST_ONLY = "postOnly"
+    ALO = "alo"
+    POST_ONLY = "alo"
     GTD = "gtd"
+
+
+class PriceAmendType(str, Enum):
+    """Price-limit behavior for limit orders."""
+
+    NO_AMEND = "noAmend"
+    CLAMP_TO_LIMIT = "clampToLimit"
 
 
 class OrderSizeType(str, Enum):

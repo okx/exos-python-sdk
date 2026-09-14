@@ -23,6 +23,9 @@ models such as `Ticker`, `Instrument`, `Order`, `Position`, and
 `TransactionReceipt`, normally inside `RestList`. All object models subclass
 `dict`, so existing container operations continue to work and unknown server
 fields are retained in the mapping and exposed through `model.extra`.
+Unknown camelCase fields are also available through their snake_case attribute
+name (for example, a future `newField` can be read as `model.new_field`), so
+additive OpenAPI/TradeZone response changes do not require an SDK release.
 Scalar `data` values retain their JSON type. API failures raise
 `APIError` with the server code, message, HTTP status, request ID, response
 data, and original decoded response.
@@ -234,11 +237,11 @@ client = ExchangeOSClient(
 Use `RestMarketType.SPOT` or `RestMarketType.PERP` for `instruments()` and
 `tickers()`. Strings remain accepted for forward compatibility. `asset_id`
 accepts a string or integer and is serialized as `assetId`. Instrument filters
-`market_type` and `asset_id` are forwarded as supplied; their combination is
-validated by ExchangeOS. A line-wide ticker query requires `market_type`; a
-single-asset ticker query may use `asset_id` alone. When both ticker selectors
-are supplied, the server verifies that the asset belongs to the requested
-market type. `order_book()`, `candles()`, `position_tiers()`,
+`market_type` and `asset_id` are forwarded as supplied so the OpenAPI backend
+can apply the current selector rules. A line-wide ticker query typically uses
+`market_type`; a single-asset ticker query may use `asset_id` alone. When both
+ticker selectors are supplied, the server verifies that the asset belongs to
+the requested market type. `order_book()`, `candles()`, `position_tiers()`,
 `funding_rate_history()`, and `price_limit()` require `asset_id` through their
 Python signatures.
 
@@ -266,9 +269,20 @@ wire shape. OpenAPI defaults omitted write `mode` to synchronous receipt mode,
 which is the SDK contract. `orders_pending()` is also available as
 `pending_orders`, and `orders_history()` as `order_history` for compatibility.
 
-`order()` requires exactly one of `oid` or `client_order_id`; the SDK checks
-this structural choice before network I/O. Identifier formats and Trade list
-query values are validated by the server.
+For typed actions, `order_item()` requires `market_type` (`spot` or `perp`).
+Raw signed mappings are forwarded unchanged; the OpenAPI backend validates
+required fields such as `marketType` and `clientOrderId`. The signing helper
+preserves `client_order_id` when supplied but does not generate one implicitly.
+
+For `cancel`, a cancellation may also omit `marketType` according to the
+current ExchangeOS API contract. `cancelAll` continues to require
+`marketType` and only Spot/Perps market types are supported by the SDK trade
+surface. Batch-size limits are validated by the OpenAPI backend.
+
+`order()` forwards `oid` and `client_order_id` as supplied; the OpenAPI backend
+currently applies the rule that exactly one identifier must be provided.
+Identifier formats and Trade list query values are likewise validated by the
+server, keeping the SDK compatible with future API changes.
 
 Pending orders, history, and fills accept `point_board`, `cursor`, and `limit`.
 History and fills use the exclusive time bounds `begin` and `end`; legacy

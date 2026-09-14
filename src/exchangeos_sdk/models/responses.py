@@ -151,7 +151,7 @@ class PositionTier(_PositionTierBase):
 
 
 class AccountPositionTier(_PositionTierBase):
-    asset_id: int
+    asset_id: str
     role_id: str
 
 
@@ -252,7 +252,7 @@ class AccountBalance(TypedRestObject):
 
 class CloseOrderAlgo(TypedRestObject):
     oid: str
-    asset_id: int
+    asset_id: str
     asset_status: str
     side: str
     position_side: str
@@ -271,7 +271,7 @@ class CloseOrderAlgo(TypedRestObject):
 
 
 class Position(TypedRestObject):
-    asset_id: int
+    asset_id: str
     asset_status: str
     position_side: str
     margin_mode: str
@@ -299,7 +299,7 @@ class Position(TypedRestObject):
 
 
 class MaxSize(TypedRestObject):
-    asset_id: int
+    asset_id: str
     max_buy_sz: str
     max_sell_sz: str
     avail: str
@@ -308,7 +308,7 @@ class MaxSize(TypedRestObject):
 
 
 class LeverageInfo(TypedRestObject):
-    asset_id: int
+    asset_id: str
     position_side: str
     leverage: str
     max_leverage: str
@@ -316,7 +316,7 @@ class LeverageInfo(TypedRestObject):
 
 
 class TradeFee(TypedRestObject):
-    asset_id: int
+    asset_id: str
     taker: str
     maker: str
 
@@ -325,7 +325,7 @@ class Bill(TypedRestObject):
     bill_id: str
     token_id: str
     margin_mode: str
-    asset_id: int
+    asset_id: str
     bal_chg: str
     bal: str
     flow_category: str
@@ -438,7 +438,7 @@ class Order(TypedRestObject):
 
 class AttachedAlgoOrder(TypedRestObject):
     oid: str
-    asset_id: int
+    asset_id: str
     side: str
     position_side: str
     margin_mode: str
@@ -461,7 +461,7 @@ class PendingOrder(TypedRestObject):
     block_height: str
     block_timestamp: str
     client_order_id: str
-    asset_id: int
+    asset_id: str
     side: str
     position_side: str
     margin_mode: str
@@ -498,7 +498,7 @@ class PendingOrders(TypedRestObject):
 class OrderHistory(TypedRestObject):
     oid: str
     client_order_id: str
-    asset_id: int
+    asset_id: str
     side: str
     position_side: str
     margin_mode: str
@@ -530,7 +530,7 @@ class Fill(TypedRestObject):
     trade_id: str
     oid: str
     client_order_id: str
-    asset_id: int
+    asset_id: str
     side: str
     exec_type: str
     price: str

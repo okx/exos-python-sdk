@@ -44,6 +44,7 @@ def test_public_api_exports_signing_wire_enums() -> None:
         "OrderSide",
         "OrderSizeType",
         "OrderTimeInForce",
+        "PriceAmendType",
         "PositionMode",
         "PositionSide",
         "TakeProfitStopLoss",
@@ -51,7 +52,8 @@ def test_public_api_exports_signing_wire_enums() -> None:
     }
     assert expected <= set(sdk.__all__)
     assert sdk.MarketType.PERP.value == "perp"
-    assert sdk.OrderTimeInForce.POST_ONLY.value == "postOnly"
+    assert sdk.OrderTimeInForce.POST_ONLY.value == "alo"
+    assert sdk.PriceAmendType.CLAMP_TO_LIMIT.value == "clampToLimit"
 
 
 def test_action_is_the_public_signing_inventory() -> None:

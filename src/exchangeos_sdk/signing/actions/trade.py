@@ -16,6 +16,7 @@ from ..models import (
     OrderSizeType,
     OrderTimeInForce,
     PositionSide,
+    PriceAmendType,
     TakeProfitStopLoss,
     TriggerPriceType,
 )
@@ -40,6 +41,10 @@ def limit_order_type(
     *,
     expires_after: int | None = None,
 ) -> dict[str, Any]:
+    # ``postOnly`` was used by an early SDK draft; retain it as an input alias
+    # while emitting the current chain value ``alo``.
+    if tif == "postOnly":
+        tif = OrderTimeInForce.ALO.value
     tif = choice("tif", tif, OrderTimeInForce)
     if tif == OrderTimeInForce.GTD.value:
         if expires_after is None:
@@ -95,6 +100,7 @@ def order_item(
     reduce_only: bool = False,
     client_order_id: str | None = None,
     size_type: str | OrderSizeType = OrderSizeType.BASE,
+    price_amend_type: str | PriceAmendType | None = None,
 ) -> dict[str, Any]:
     if not isinstance(reduce_only, bool):
         raise SigningError("reduce_only must be bool")
@@ -108,8 +114,8 @@ def order_item(
     item: dict[str, Any] = {
         "assetId": string_value("asset_id", asset_id),
         "side": choice("side", wire_value(side).lower(), OrderSide),
-        "marketType": market,
     }
+    item["marketType"] = market
     if client_order_id is not None:
         if not validate_client_order_id(client_order_id):
             raise SigningError(
@@ -125,6 +131,10 @@ def order_item(
     if size_type != OrderSizeType.BASE.value:
         item["sizeType"] = size_type
     item["orderType"] = copy.deepcopy(dict(order_type or limit_order_type()))
+    if price_amend_type is not None:
+        amend = choice("price_amend_type", price_amend_type, PriceAmendType)
+        if amend != PriceAmendType.NO_AMEND.value:
+            item["priceAmendType"] = amend
     validate_msgpack(item)
     return item
 
@@ -132,21 +142,19 @@ def order_item(
 def cancel_item(
     *,
     asset_id: str,
-    market_type: str | MarketType | Mapping[str, Any],
+    market_type: str | MarketType | Mapping[str, Any] | None = None,
     oid: str | None = None,
     client_order_id: str | None = None,
 ) -> dict[str, Any]:
     if (oid is None) == (client_order_id is None):
         raise SigningError("provide exactly one of oid or client_order_id")
-    market = (
-        copy.deepcopy(dict(market_type))
-        if isinstance(market_type, Mapping)
-        else choice("market_type", market_type, MarketType)
-    )
-    item: dict[str, Any] = {
-        "assetId": string_value("asset_id", asset_id),
-        "marketType": market,
-    }
+    if isinstance(market_type, Mapping):
+        market: Any = copy.deepcopy(dict(market_type))
+    elif market_type is not None:
+        market = choice("market_type", market_type, MarketType)
+    item: dict[str, Any] = {"assetId": string_value("asset_id", asset_id)}
+    if market_type is not None:
+        item["marketType"] = market
     if oid is not None:
         item["oid"] = string_value("oid", oid)
     else:
@@ -160,18 +168,27 @@ def cancel_item(
 
 def modify_item(
     *,
-    oid: str,
+    oid: str | None = None,
     asset_id: str,
     price: str | None = None,
     size: str | None = None,
     order_type: Mapping[str, Any] | None = None,
+    client_order_id: str | None = None,
 ) -> dict[str, Any]:
+    if (oid is None) == (client_order_id is None):
+        raise SigningError("provide exactly one of oid or client_order_id")
     if price is None and size is None and order_type is None:
         raise SigningError("modify item requires price, size, or order_type")
-    item: dict[str, Any] = {
-        "oid": string_value("oid", oid),
-        "assetId": string_value("asset_id", asset_id),
-    }
+    item: dict[str, Any] = {}
+    if oid is not None:
+        item["oid"] = string_value("oid", oid)
+    else:
+        if not validate_client_order_id(client_order_id or ""):
+            raise SigningError(
+                "client_order_id must be a 34-character 0x-prefixed hexadecimal value"
+            )
+        item["clientOrderId"] = client_order_id
+    item["assetId"] = string_value("asset_id", asset_id)
     if price is not None:
         item["price"] = string_value("price", price)
     if size is not None:

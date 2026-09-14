@@ -70,6 +70,7 @@ def test_market_endpoint_returns_concrete_models_and_nested_models() -> None:
     assert result[0].price_decimals == "1"
     assert result[0].upc_chg[0].new_value == "2"
     assert result[0].extra == {"futureField": "kept"}
+    assert result[0].future_field == "kept"
     http.close()
 
 

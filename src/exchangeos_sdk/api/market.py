@@ -1,6 +1,5 @@
 """Public Spot and Perps market-data API."""
 
-from ..exceptions import ValidationError
 from ..models import (
     Candle,
     FundingRate,
@@ -60,8 +59,6 @@ class MarketAPI(BaseAPI):
         market_type: RestMarketType | str | None = None,
         asset_id: str | int | None = None,
     ) -> RestList[Ticker]:
-        if market_type is None and asset_id is None:
-            raise ValidationError("tickers requires market_type or asset_id")
         return self._public_get(f"{self._ROOT}/tickers", marketType=market_type, assetId=asset_id)
 
     def order_book(self, asset_id: str | int, *, depth: int | None = None) -> RestList[OrderBook]:
