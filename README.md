@@ -17,7 +17,7 @@ asynchronous public/private WebSocket subscriptions.
 - Per-phase HTTP timeouts, proxy/User-Agent configuration, and safe lifecycle hooks.
 - One `Environment` binds the REST URL, WebSocket URL, and signing chain.
 
-Python 3.10–3.13 is supported.
+Python 3.10+ is required. CI verifies Python 3.10–3.13.
 
 The source tree is organized by capability: REST namespaces live under
 `api/`, action builders and EIP-712 internals under `signing/`, and
@@ -62,6 +62,36 @@ credentials = Credentials(
 client = ExchangeOSClient(auth=credentials)
 ```
 
+### Which credentials do I need?
+
+| Task | Required credential | Notes |
+|---|---|---|
+| Public REST or public WebSocket | None | Start here to verify installation. |
+| Private REST reads or private WebSocket | CEX API key, secret, and passphrase | Passed as `Credentials`. |
+| Local transaction signing | Authorized Agent private key | Passed only to `client.sign_action(...)`; no network request is made. |
+| Submit a signed transaction | CEX API credentials and a `SignedTransaction` | The submitting process need not hold the Agent private key. |
+
+The API credentials and Agent private key have separate purposes; do not
+interchange them. The SDK does not read or persist either value.
+
+### Which market-type enum should I use?
+
+Use `RestMarketType` for REST query arguments and `MarketType` only when
+constructing a signed Action:
+
+```python
+from exchangeos_sdk import MarketType, RestMarketType
+
+# REST query
+client.market.tickers(market_type=RestMarketType.PERP)
+
+# Signed Action field
+order = order_item(..., market_type=MarketType.SPOT)
+```
+
+`MarketType.PREDICTION` exists only for legacy standalone signing compatibility;
+this SDK submits signed Spot and Perps actions only.
+
 `PRODUCTION` is the default deployment. A custom deployment must provide its
 REST URL, WebSocket URL, and signing chain together:
 
@@ -77,8 +107,13 @@ test_environment = Environment.custom(
 client = ExchangeOSClient(environment=test_environment)
 ```
 
-The SDK does not read or persist credentials. Applications should load them
-from a secret provider or environment variables.
+Do not override those values independently: one `Environment` ensures REST,
+WebSocket, and local signing all target the same deployment. Its
+`signing_chain` selects the signing source (`Dev`, `Testnet`, or `Mainnet`)
+inside the EIP-712 message; the EIP-712 domain's protocol chain ID remains
+fixed. [Signing](docs/signing.md#protocol) explains the two
+values in detail. Applications should load credentials from a secret provider
+or environment variables.
 
 REST `data` values use dict/list-compatible models that retain unknown fields
 and exact decimal strings. Signed writes accept locally generated EIP-712

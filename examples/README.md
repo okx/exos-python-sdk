@@ -1,6 +1,6 @@
 # ExchangeOS SDK notebooks
 
-The SDK supports Python 3.10–3.13.
+The SDK requires Python 3.10+. CI verifies Python 3.10–3.13.
 
 Create and activate a virtual environment, then install the SDK and notebook
 kernel support into that same environment:

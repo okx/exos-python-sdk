@@ -53,6 +53,24 @@ or `FillsPage`. Every page exposes `data`, `has_more`, and `next_cursor`.
 Transitional deployments that return Funding/Bills pages directly are
 normalized to the same SDK shape.
 
+## Pagination
+
+Pagination results are list-compatible because the ExchangeOS response envelope
+contains the page at `data[0]`. Select that first page before reading records or
+the next cursor:
+
+```python
+with ExchangeOSClient(auth=credentials) as client:
+    result = client.trade.orders_history(asset_id="2", limit=50)
+
+page = result[0]
+for order in page.data:
+    print(order.order_id, order.state)
+
+if page.has_more:
+    next_result = client.trade.orders_history(asset_id="2", cursor=page.next_cursor)
+```
+
 ```python
 from exchangeos_sdk import ClientOptions, ExchangeOSClient
 
@@ -153,7 +171,9 @@ over the complete `response`, which can contain account-specific data.
 
 `Environment` is the single deployment setting. It prevents a REST request
 from accidentally using a WebSocket endpoint or signing source from another
-network. `PRODUCTION` is selected by default.
+network. `PRODUCTION` is selected by default. For a non-production deployment,
+set all three values together; do not override an endpoint or signing source
+on its own.
 
 ```python
 from exchangeos_sdk import Chain, Environment, ExchangeOSClient
@@ -166,6 +186,11 @@ environment = Environment.custom(
 )
 client = ExchangeOSClient(environment=environment)
 ```
+
+`signing_chain` selects the EIP-712 `Agent.source` value. It is intentionally
+chosen by the Environment and cannot be separately overridden in
+`client.sign_action(...)`; the protocol EIP-712 domain chain ID is fixed. See
+[Signing](signing.md#protocol) for the protocol details.
 
 ## Transport configuration
 

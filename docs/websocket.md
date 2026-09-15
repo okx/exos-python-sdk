@@ -43,6 +43,22 @@ async with client.websocket(message_callback=on_message) as ws:
     await ws.wait_closed()
 ```
 
+For a small channel-specific handler, decode the raw message at the application
+boundary. This preserves all new server fields while making the channel branch
+explicit:
+
+```python
+import json
+
+
+def on_message(raw_json: str) -> None:
+    message = json.loads(raw_json)
+    if message.get("arg", {}).get("channel") != "exchangeos-tickers":
+        return
+    for ticker in message.get("data", []):
+        print(ticker["assetId"], ticker["lastPx"])
+```
+
 ## Channel coverage
 
 Public unified channels:
