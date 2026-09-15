@@ -122,6 +122,8 @@ and signing errors.
   instruments and tickers.
 - [`examples/account_queries.ipynb`](examples/account_queries.ipynb): authenticated
   balance and position queries.
+- [`examples/sign_transaction.ipynb`](examples/sign_transaction.ipynb): local Perps
+  action construction and EIP-712 signing without a REST submission.
 - [`examples/place_order.ipynb`](examples/place_order.ipynb): signed Perps limit-order
   submission using REST and EIP-712 authentication.
 - [`examples/order_queries.ipynb`](examples/order_queries.ipynb): pending orders,

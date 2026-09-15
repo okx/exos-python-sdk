@@ -2,16 +2,22 @@
 
 The SDK supports Python 3.10–3.13.
 
-Install the SDK and notebook kernel support into the Python environment selected
-by VS Code or Jupyter:
+Create and activate a virtual environment, then install the SDK and notebook
+kernel support into that same environment:
 
 ```bash
-python -m pip install -e '.[notebook]'
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install 'exchangeos-sdk[notebook]'
+python -m ipykernel install --user --name exchangeos-sdk --display-name 'ExchangeOS SDK'
 ```
 
-Select that same Python environment when prompted to choose a notebook kernel,
-then run the cells in order. REST calls are synchronous. The WebSocket notebook
-uses async cells because a streaming connection remains asynchronous.
+When running from a source checkout instead, replace the package-install line
+with `python -m pip install -e '.[notebook]'`. Select the **ExchangeOS SDK**
+kernel (or the same `.venv` interpreter) in VS Code or Jupyter, then run cells
+in order. REST calls are synchronous; the WebSocket notebook uses async cells
+because a streaming connection remains asynchronous.
 
 ## Authentication
 
@@ -19,6 +25,22 @@ Private REST and WebSocket calls use API credentials. Signed writes additionally
 use an authorized Agent private key; the two credential types are independent.
 Load sensitive values from a secret manager in production and never commit them
 to source control.
+
+For a public-only start, open `public_rest.ipynb`; it needs no environment
+variables. To use private REST or signed writes, set values in the terminal
+that launches VS Code or Jupyter:
+
+```bash
+export EXCHANGEOS_API_KEY='...'
+export EXCHANGEOS_API_SECRET='...'
+export EXCHANGEOS_API_PASSPHRASE='...'
+export EXCHANGEOS_ASSET_ID='...'
+# Required only by the two signed-write notebooks:
+export EXCHANGEOS_AGENT_PRIVATE_KEY='...'
+```
+
+`EXCHANGEOS_VAULT_ADDRESS`, order identifiers, price, size, and market type are
+not global requirements; each notebook lists the additional inputs it needs.
 
 ## Suggested flow
 
@@ -28,15 +50,16 @@ Run the examples from the repository root in this order:
 |---|---|---|---|
 | 1 | `public_rest.ipynb` | Query Spot/Perps instruments and tickers; handle REST failures | No |
 | 2 | `account_queries.ipynb` | Check balances and positions | No |
-| 3 | `place_order.ipynb` | Build, sign, and submit a Perps limit order | **Yes** |
-| 4 | `order_queries.ipynb` | Check pending orders, history, and fills | No |
-| 5 | `cancel_order.ipynb` | Sign and submit one cancellation | **Yes** |
-| 6 | `websocket_stream.ipynb` | Stream public and private raw JSON messages | No |
+| 3 | `sign_transaction.ipynb` | Build and sign a Perps limit order locally; does not submit it | No |
+| 4 | `place_order.ipynb` | Build, sign, and submit a Perps limit order | **Yes** |
+| 5 | `order_queries.ipynb` | Check pending orders, history, and fills | No |
+| 6 | `cancel_order.ipynb` | Sign and submit one cancellation | **Yes** |
+| 7 | `websocket_stream.ipynb` | Stream public raw JSON messages; optionally add private order updates | No |
 
 Every notebook lists its required environment variables before executable
-cells. Public REST needs no credentials. Private REST and WebSocket operations
-use API credentials, while signed writes additionally require an authorized
-Agent private key.
+cells. Public REST and public WebSocket streams need no credentials. Private
+REST and private WebSocket operations use API credentials, while signed writes
+additionally require an authorized Agent private key.
 
 The default `PRODUCTION` environment keeps REST, WebSocket, and signing chain
 settings together. For another deployment, create one complete

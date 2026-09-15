@@ -13,6 +13,7 @@ EXPECTED_NOTEBOOKS = {
     "order_queries.ipynb",
     "place_order.ipynb",
     "public_rest.ipynb",
+    "sign_transaction.ipynb",
     "websocket_stream.ipynb",
 }
 
