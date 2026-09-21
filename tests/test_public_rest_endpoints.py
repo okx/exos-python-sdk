@@ -141,7 +141,7 @@ def test_live_public_endpoint_needs_no_token_or_credentials(
     environment = Environment.custom(
         name="live-test",
         rest_url=os.getenv("EXCHANGEOS_TEST_BASE_URL", "https://beta.okex.org"),
-        websocket_url=os.getenv("EXCHANGEOS_TEST_WS_URL", "wss://ws.okx.com:8443/ws/v5/business"),
+        websocket_url=os.getenv("EXCHANGEOS_TEST_WS_URL", "wss://ws.okx.com/ws/v5/exchangeos"),
         signing_chain=Chain.TESTNET,
     )
     with ExchangeOSClient(environment=environment) as client:

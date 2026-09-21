@@ -20,7 +20,7 @@ from .channels import (
     subscription_key,
 )
 
-DEFAULT_WS_URL = "wss://ws.okx.com:8443/ws/v5/business"
+DEFAULT_WS_URL = "wss://ws.okx.com/ws/v5/exchangeos"
 
 OverflowPolicy = Literal["drop_oldest", "drop_newest", "raise"]
 EventHandler = Callable[[str, Mapping[str, Any]], Awaitable[None] | None]

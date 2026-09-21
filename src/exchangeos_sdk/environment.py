@@ -75,7 +75,7 @@ def _safe_websocket_url(value: str) -> bool:
 PRODUCTION = Environment(
     name="production",
     rest_url="https://www.okx.com",
-    websocket_url="wss://ws.okx.com:8443/ws/v5/business",
+    websocket_url="wss://ws.okx.com/ws/v5/exchangeos",
     signing_chain=Chain.MAINNET,
 )
 
