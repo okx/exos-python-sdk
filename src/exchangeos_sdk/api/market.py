@@ -13,6 +13,8 @@ from ..models import (
     PriceLimit,
     RestList,
     RestMarketType,
+    SecurityFundResult,
+    SecurityFundType,
     Ticker,
     TokenInfo,
 )
@@ -31,6 +33,7 @@ MARKET_ENDPOINTS = (
     "open_interest",
     "price_limit",
     "index_tickers",
+    "security_fund",
 )
 
 
@@ -117,3 +120,18 @@ class MarketAPI(BaseAPI):
 
     def index_tickers(self, *, asset_id: str | int | None = None) -> RestList[IndexTicker]:
         return self._public_get(f"{self._ROOT}/index-tickers", assetId=asset_id)
+
+    def security_fund(
+        self,
+        fund_type: SecurityFundType | str,
+        *,
+        asset_id: str | int | None = None,
+    ) -> RestList[SecurityFundResult]:
+        """Return one security-fund snapshot and its latest seven daily balances.
+
+        ``asset_id`` is required by ExchangeOS for ``securityFund`` and must be
+        omitted for ``securityVault`` and ``supplementaryFund``. The server is
+        the source of truth for these conditional business rules.
+        """
+
+        return self._public_get(f"{self._ROOT}/security-fund", fundType=fund_type, assetId=asset_id)

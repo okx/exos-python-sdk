@@ -26,7 +26,7 @@ def routes(recorder: Recorder):
     return [(method, path, auth) for method, path, auth, _, _ in recorder.calls]
 
 
-def test_market_inventory_contains_exactly_twelve_public_routes() -> None:
+def test_market_inventory_contains_exactly_thirteen_public_routes() -> None:
     recorder = Recorder()
     api = MarketAPI(recorder)  # type: ignore[arg-type]
     api.token_info()
@@ -41,7 +41,8 @@ def test_market_inventory_contains_exactly_twelve_public_routes() -> None:
     api.open_interest(asset_id=602)
     api.price_limit(602)
     api.index_tickers(asset_id=602)
-    assert len(MARKET_ENDPOINTS) == 12 == len(set(MARKET_ENDPOINTS))
+    api.security_fund("securityFund", asset_id=602)
+    assert len(MARKET_ENDPOINTS) == 13 == len(set(MARKET_ENDPOINTS))
     assert routes(recorder) == [
         ("GET", f"/api/v5/exchangeos/market/{path}", False)
         for path in (
@@ -57,20 +58,24 @@ def test_market_inventory_contains_exactly_twelve_public_routes() -> None:
             "open-interest",
             "price-limit",
             "index-tickers",
+            "security-fund",
         )
     ]
     assert recorder.calls[1][3] == {"marketType": "perp", "assetId": None}
+    assert recorder.calls[12][3] == {"fundType": "securityFund", "assetId": 602}
 
 
-def test_trade_inventory_contains_exactly_nine_authenticated_routes() -> None:
+def test_trade_inventory_contains_exactly_ten_authenticated_routes() -> None:
     recorder = Recorder()
     api = TradeAPI(recorder)  # type: ignore[arg-type]
     place_tx = {"action": {"type": "placeOrder", "orders": [{"marketType": "spot"}]}, "nonce": 1}
     cancel_tx = {"action": {"type": "cancel", "cancels": [{"marketType": "spot"}]}, "nonce": 2}
+    noop_tx = {"action": {"type": "noop"}, "nonce": 3}
     modify_tx = {"action": {"type": "modify", "modifies": [{"oid": "1"}]}, "nonce": 3}
     cancel_all_tx = {"action": {"type": "cancelAll", "marketType": "spot"}, "nonce": 4}
     api.place_order(place_tx)
     api.cancel_order(cancel_tx)
+    api.noop(noop_tx)
     api.modify_order(modify_tx)
     api.cancel_all_after(cancel_all_tx)
     api.transaction("0xhash")
@@ -88,10 +93,11 @@ def test_trade_inventory_contains_exactly_nine_authenticated_routes() -> None:
         limit=50,
     )
     api.fills(point_board=True, asset_id=602, begin=1, end=2, cursor="next-2", limit=50)
-    assert len(TRADE_ENDPOINTS) == 9 == len(set(TRADE_ENDPOINTS))
+    assert len(TRADE_ENDPOINTS) == 10 == len(set(TRADE_ENDPOINTS))
     assert routes(recorder) == [
         ("POST", "/api/v5/exchangeos/trade/place-order", True),
         ("POST", "/api/v5/exchangeos/trade/cancel-order", True),
+        ("POST", "/api/v5/exchangeos/trade/noop", True),
         ("POST", "/api/v5/exchangeos/trade/modify-order", True),
         ("POST", "/api/v5/exchangeos/trade/cancel-all-after", True),
         ("GET", "/api/v5/exchangeos/trade/transaction", True),
@@ -101,19 +107,19 @@ def test_trade_inventory_contains_exactly_nine_authenticated_routes() -> None:
         ("GET", "/api/v5/exchangeos/trade/fills", True),
     ]
     assert recorder.calls[0][4] is place_tx
-    assert recorder.calls[5][3] == {
+    assert recorder.calls[6][3] == {
         "oid": None,
         "clientOrderId": "cloid",
         "vaultAddress": "0xvault",
     }
-    assert recorder.calls[6][3] == {
+    assert recorder.calls[7][3] == {
         "pointBoard": True,
         "assetId": 602,
         "cursor": "next-0",
         "limit": 25,
         "vaultAddress": "0xvault",
     }
-    assert recorder.calls[7][3] == {
+    assert recorder.calls[8][3] == {
         "pointBoard": False,
         "assetId": 602,
         "state": "filled",
@@ -125,7 +131,7 @@ def test_trade_inventory_contains_exactly_nine_authenticated_routes() -> None:
     }
 
 
-def test_account_inventory_contains_exactly_fourteen_authenticated_routes() -> None:
+def test_account_inventory_contains_exactly_fifteen_authenticated_routes() -> None:
     recorder = Recorder()
     api = AccountAPI(recorder)  # type: ignore[arg-type]
     api.account_transfer({"action": {"type": "subAccountTransfer"}, "nonce": 1})
@@ -140,6 +146,7 @@ def test_account_inventory_contains_exactly_fourteen_authenticated_routes() -> N
     api.position_tiers(602, vault_address="0xvault")
     api.leverage_info(602, position_side="long", vault_address="0xvault")
     api.trade_fee(602)
+    api.limits(vault_address="0xvault")
     api.bills(
         token_id="1",
         flow_category="trade",
@@ -150,7 +157,7 @@ def test_account_inventory_contains_exactly_fourteen_authenticated_routes() -> N
         point_board=True,
     )
     api.detail()
-    assert len(ACCOUNT_ENDPOINTS) == 14 == len(set(ACCOUNT_ENDPOINTS))
+    assert len(ACCOUNT_ENDPOINTS) == 15 == len(set(ACCOUNT_ENDPOINTS))
     assert routes(recorder) == [
         (verb, f"/api/v5/exchangeos/account/{path}", True)
         for verb, path in (
@@ -166,6 +173,7 @@ def test_account_inventory_contains_exactly_fourteen_authenticated_routes() -> N
             ("GET", "position-tiers"),
             ("GET", "leverage-info"),
             ("GET", "trade-fee"),
+            ("GET", "limits"),
             ("GET", "bills"),
             ("GET", "detail"),
         )
@@ -178,7 +186,8 @@ def test_account_inventory_contains_exactly_fourteen_authenticated_routes() -> N
         "vaultAddress": "0xvault",
         "pointBoard": False,
     }
-    assert recorder.calls[12][3] == {
+    assert recorder.calls[12][3] == {"vaultAddress": "0xvault"}
+    assert recorder.calls[13][3] == {
         "tokenId": "1",
         "assetId": None,
         "flowCategory": "trade",
@@ -358,9 +367,12 @@ def test_trade_writes_forward_market_types_to_backend(
 
 def test_signed_rest_writes_reject_an_action_for_another_endpoint_before_io() -> None:
     recorder = Recorder()
-    api = AccountAPI(recorder)  # type: ignore[arg-type]
+    account = AccountAPI(recorder)  # type: ignore[arg-type]
+    trade = TradeAPI(recorder)  # type: ignore[arg-type]
 
     with pytest.raises(ValidationError, match="createSubAccount"):
-        api.create_sub_account({"action": {"type": "predictionSplit"}, "nonce": 1})
+        account.create_sub_account({"action": {"type": "predictionSplit"}, "nonce": 1})
+    with pytest.raises(ValidationError, match="noop"):
+        trade.noop({"action": {"type": "placeOrder"}, "nonce": 2})
 
     assert recorder.calls == []

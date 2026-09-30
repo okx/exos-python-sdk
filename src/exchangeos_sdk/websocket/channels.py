@@ -12,6 +12,7 @@ EXCHANGEOS_PUBLIC_CHANNELS = (
     "exchangeos-mark-price-candle{bar}",
     "exchangeos-index-tickers",
     "exchangeos-index-candle{bar}",
+    "exchangeos-estimated-price",
     "exchangeos-funding-rate",
     "exchangeos-instruments",
     "exchangeos-open-interest",
@@ -36,6 +37,10 @@ PUBLIC_CHANNELS = EXCHANGEOS_PUBLIC_CHANNELS
 PRIVATE_CHANNELS = EXCHANGEOS_PRIVATE_CHANNELS
 
 BOOK_CHANNELS = frozenset({"exchangeos-books", "exchangeos-books5", "exchangeos-books-grouped"})
+
+REQUIRED_CHANNEL_PARAMS = {
+    "exchangeos-estimated-price": frozenset({"assetId"}),
+}
 
 
 def matches_channel(channel: str, patterns: Sequence[str]) -> bool:

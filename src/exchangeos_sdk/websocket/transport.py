@@ -16,6 +16,7 @@ from .channels import (
     BOOK_CHANNELS,
     PRIVATE_CHANNELS,
     PUBLIC_CHANNELS,
+    REQUIRED_CHANNEL_PARAMS,
     matches_channel,
     subscription_key,
 )
@@ -226,9 +227,18 @@ class ExchangeOSWebSocket:
     ) -> list[dict[str, Any]]:
         if not channel or " " in channel:
             raise ValueError("channel must be a non-empty canonical name without spaces")
-        if not params:
-            return [{"channel": channel}]
-        return [{"channel": channel, **dict(param)} for param in params]
+        args = (
+            [{"channel": channel}]
+            if not params
+            else [{"channel": channel, **dict(param)} for param in params]
+        )
+        required = REQUIRED_CHANNEL_PARAMS.get(channel, frozenset())
+        for arg in args:
+            missing = required.difference(arg)
+            if missing:
+                names = ", ".join(sorted(missing))
+                raise ValueError(f"channel {channel!r} requires parameter(s): {names}")
+        return args
 
     @staticmethod
     def _validate_channel(channel: str, *, private: bool) -> None:
@@ -354,9 +364,7 @@ class ExchangeOSWebSocket:
         login_args: dict[str, Any] = dict(websocket_login_args(self.credentials))
         operation = "login-wallet"
         expected_events = {"login-wallet"}
-        await ws.send(
-            self._encode({"op": operation, "args": [login_args]})
-        )
+        await ws.send(self._encode({"op": operation, "args": [login_args]}))
         try:
             raw = await asyncio.wait_for(ws.recv(), timeout=30)
             raw_text = self._raw_text(raw)

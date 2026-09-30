@@ -71,6 +71,7 @@ exchangeos-mark-price
 exchangeos-mark-price-candle{bar}
 exchangeos-index-tickers
 exchangeos-index-candle{bar}
+exchangeos-estimated-price
 exchangeos-funding-rate
 exchangeos-instruments
 exchangeos-open-interest
@@ -97,6 +98,18 @@ exchangeos-setting-updates
 
 Replace `{bar}` with the server interval, for example
 `exchangeos-candle1m`.
+
+`exchangeos-estimated-price` publishes estimated settlement data while a
+perpetual is delisting. It requires `asset_id` and sends a current snapshot
+after subscription. Each `data[]` item contains `assetId`, `name`,
+`marketType`, `expTime`, `settlePx`, and `ts`. If no estimate is available,
+`settlePx` is an empty string. Updates use an approximately 200 ms minimum
+aggregation window; normal public WebSocket ping/pong keeps an otherwise idle
+subscription alive.
+
+```python
+await ws.subscribe_public("exchangeos-estimated-price", asset_id="9102")
+```
 
 `subscribe_public()` accepts `asset_id` plus arbitrary channel parameters.
 `subscribe_private()` accepts `vault_address` plus arbitrary channel

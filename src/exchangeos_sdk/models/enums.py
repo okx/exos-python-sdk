@@ -27,6 +27,12 @@ class MarketType(OpenStringEnum):
     PERP = "perp"
 
 
+class SecurityFundType(OpenStringEnum):
+    SECURITY_VAULT = "securityVault"
+    SECURITY_FUND = "securityFund"
+    SUPPLEMENTARY_FUND = "supplementaryFund"
+
+
 class OrderState(OpenStringEnum):
     OPEN = "open"
     PARTIALLY_FILLED = "partially_filled"

@@ -1,6 +1,6 @@
 """Forward-compatible REST response models and value helpers."""
 
-from .enums import MarketType, OpenStringEnum, OrderState, Side, TimeInForce
+from .enums import MarketType, OpenStringEnum, OrderState, SecurityFundType, Side, TimeInForce
 from .responses import (
     AccountBalance,
     AccountDetail,
@@ -31,12 +31,20 @@ from .responses import (
     PositionTier,
     PriceCandle,
     PriceLimit,
+    SecurityFund,
+    SecurityFundHistoryPoint,
+    SecurityFundResult,
     SubAccount,
     Ticker,
     TokenInfo,
     TradeFee,
     TransactionReceipt,
     UpcomingParameterChange,
+    UserActionLimit,
+    UserCancelAllLimit,
+    UserCancelExemption,
+    UserLimits,
+    UserOpenOrdersLimit,
     WriteResult,
 )
 from .rest import (
@@ -92,6 +100,10 @@ __all__ = [
     "RestList",
     "RestMarketType",
     "RestObject",
+    "SecurityFund",
+    "SecurityFundHistoryPoint",
+    "SecurityFundResult",
+    "SecurityFundType",
     "SubAccount",
     "Ticker",
     "TokenInfo",
@@ -99,6 +111,11 @@ __all__ = [
     "TransactionReceipt",
     "TypedRestObject",
     "UpcomingParameterChange",
+    "UserActionLimit",
+    "UserCancelAllLimit",
+    "UserCancelExemption",
+    "UserLimits",
+    "UserOpenOrdersLimit",
     "WriteResult",
     "Side",
     "TimeInForce",

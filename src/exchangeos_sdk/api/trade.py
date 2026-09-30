@@ -17,6 +17,7 @@ from .base import ROOT, BaseAPI
 TRADE_ENDPOINTS = (
     "place_order",
     "cancel_order",
+    "noop",
     "modify_order",
     "cancel_all_after",
     "transaction",
@@ -25,6 +26,7 @@ TRADE_ENDPOINTS = (
     "orders_history",
     "fills",
 )
+
 
 class TradeAPI(BaseAPI):
     """Authenticated Spot and Perps trade operations."""
@@ -44,6 +46,15 @@ class TradeAPI(BaseAPI):
             f"{self._ROOT}/cancel-order",
             signed_transaction,
             expected_action_type="cancel",
+        )
+
+    def noop(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
+        """Submit a signed Noop action to invalidate its nonce."""
+
+        return self._post(
+            f"{self._ROOT}/noop",
+            signed_transaction,
+            expected_action_type="noop",
         )
 
     def modify_order(self, signed_transaction: Any) -> RestList[TransactionReceipt]:

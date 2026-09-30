@@ -14,6 +14,7 @@ from exchangeos_sdk import (
     FundingRateHistoryPage,
     RestList,
     RestMarketType,
+    SecurityFundType,
 )
 from exchangeos_sdk.api import MARKET_ENDPOINTS
 
@@ -64,6 +65,12 @@ PUBLIC_ENDPOINT_CASES = (
     PublicEndpointCase("open_interest", "open-interest", {"asset_id": 2}, {"assetId": "2"}),
     PublicEndpointCase("price_limit", "price-limit", {"asset_id": 2}, {"assetId": "2"}),
     PublicEndpointCase("index_tickers", "index-tickers", {"asset_id": 2}, {"assetId": "2"}),
+    PublicEndpointCase(
+        "security_fund",
+        "security-fund",
+        {"fund_type": SecurityFundType.SECURITY_FUND, "asset_id": 2},
+        {"fundType": "securityFund", "assetId": "2"},
+    ),
 )
 
 AUTH_HEADERS = {
@@ -112,6 +119,39 @@ def test_every_public_endpoint_is_called_without_authentication(
         assert isinstance(result[0].data, RestList)
     else:
         assert isinstance(result, RestList)
+
+
+@pytest.mark.parametrize(
+    ("fund_type", "asset_id", "expected_query"),
+    (
+        (SecurityFundType.SECURITY_VAULT, None, {"fundType": "securityVault"}),
+        (
+            SecurityFundType.SECURITY_FUND,
+            2,
+            {"fundType": "securityFund", "assetId": "2"},
+        ),
+        (
+            SecurityFundType.SUPPLEMENTARY_FUND,
+            None,
+            {"fundType": "supplementaryFund"},
+        ),
+    ),
+)
+def test_security_fund_serializes_each_selector(
+    fund_type: SecurityFundType,
+    asset_id: int | None,
+    expected_query: dict[str, str],
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert dict(request.url.params) == expected_query
+        return httpx.Response(200, json={"code": "0", "msg": "", "data": []})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    client = ExchangeOSClient(environment=TEST_ENVIRONMENT, http_client=http)
+    try:
+        client.market.security_fund(fund_type, asset_id=asset_id)
+    finally:
+        http.close()
 
 
 LIVE_PUBLIC_ENDPOINT_CASES = tuple(

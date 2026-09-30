@@ -212,6 +212,28 @@ class IndexTicker(TypedRestObject):
     ts: str
 
 
+class SecurityFundHistoryPoint(TypedRestObject):
+    c_time: str
+    balance: str
+
+
+class SecurityFund(TypedRestObject):
+    asset_id: str
+    fund_type: str
+    fund_value: str
+    block_timestamp: str
+    history: list[SecurityFundHistoryPoint]
+
+    _aliases: ClassVar = {"block_timestamp": "block_timestamp"}
+    _nested_lists: ClassVar = {"history": SecurityFundHistoryPoint}
+
+
+class SecurityFundResult(TypedRestObject):
+    data: list[SecurityFund]
+
+    _nested_lists: ClassVar = {"data": SecurityFund}
+
+
 class BalanceDetail(TypedRestObject):
     token_id: str
     collateral_enabled: bool
@@ -319,6 +341,52 @@ class TradeFee(TypedRestObject):
     asset_id: str
     taker: str
     maker: str
+
+
+class UserActionLimit(TypedRestObject):
+    initial: str
+    earned: str
+    purchased: str
+    granted: str
+    used: str
+    remaining: str
+    is_throttled: bool
+    throttle_interval_ms: str
+
+
+class UserCancelAllLimit(TypedRestObject):
+    daily_limit: str
+    used: str
+    remaining: str
+    period_start_ms: str
+    period_end_ms: str
+
+
+class UserCancelExemption(TypedRestObject):
+    limit: str
+    remaining: str
+
+
+class UserOpenOrdersLimit(TypedRestObject):
+    current: str
+    limit: str
+    user_override: str
+
+
+class UserLimits(TypedRestObject):
+    action_limit: UserActionLimit
+    cancel_all: UserCancelAllLimit
+    cancel_exemption: UserCancelExemption
+    open_orders: UserOpenOrdersLimit
+    block_timestamp: str
+
+    _aliases: ClassVar = {"block_timestamp": "block_timestamp"}
+    _nested: ClassVar = {
+        "actionLimit": UserActionLimit,
+        "cancelAll": UserCancelAllLimit,
+        "cancelExemption": UserCancelExemption,
+        "openOrders": UserOpenOrdersLimit,
+    }
 
 
 class Bill(TypedRestObject):
@@ -583,12 +651,14 @@ REST_RESPONSE_MODELS: dict[str, type[TypedRestObject]] = {
     "/api/v5/exchangeos/market/open-interest": OpenInterest,
     "/api/v5/exchangeos/market/price-limit": PriceLimit,
     "/api/v5/exchangeos/market/index-tickers": IndexTicker,
+    "/api/v5/exchangeos/market/security-fund": SecurityFundResult,
     "/api/v5/exchangeos/account/balance": AccountBalance,
     "/api/v5/exchangeos/account/positions": Position,
     "/api/v5/exchangeos/account/max-size": MaxSize,
     "/api/v5/exchangeos/account/position-tiers": AccountPositionTier,
     "/api/v5/exchangeos/account/leverage-info": LeverageInfo,
     "/api/v5/exchangeos/account/trade-fee": TradeFee,
+    "/api/v5/exchangeos/account/limits": UserLimits,
     "/api/v5/exchangeos/account/bills": BillsPage,
     "/api/v5/exchangeos/account/detail": AccountDetail,
     "/api/v5/exchangeos/trade/transaction": TransactionReceipt,
@@ -598,6 +668,7 @@ REST_RESPONSE_MODELS: dict[str, type[TypedRestObject]] = {
     "/api/v5/exchangeos/trade/fills": FillsPage,
     "/api/v5/exchangeos/trade/place-order": TransactionReceipt,
     "/api/v5/exchangeos/trade/cancel-order": TransactionReceipt,
+    "/api/v5/exchangeos/trade/noop": TransactionReceipt,
     "/api/v5/exchangeos/trade/modify-order": TransactionReceipt,
     "/api/v5/exchangeos/trade/cancel-all-after": WriteResult,
     "/api/v5/exchangeos/account/account-transfer": TransactionReceipt,

@@ -97,6 +97,7 @@ the camelCase form.
 | Python parameter | Wire name |
 |---|---|
 | `market_type` | `marketType` |
+| `fund_type` | `fundType` |
 | `asset_id` | `assetId` |
 | `vault_address` | `vaultAddress` |
 | `client_order_id` | `clientOrderId` |
@@ -258,6 +259,7 @@ client = ExchangeOSClient(
 | GET | `/api/v5/exchangeos/market/open-interest` | `open_interest()` |
 | GET | `/api/v5/exchangeos/market/price-limit` | `price_limit()` |
 | GET | `/api/v5/exchangeos/market/index-tickers` | `index_tickers()` |
+| GET | `/api/v5/exchangeos/market/security-fund` | `security_fund()` |
 
 Use `RestMarketType.SPOT` or `RestMarketType.PERP` for `instruments()` and
 `tickers()`. Strings remain accepted for forward compatibility. `asset_id`
@@ -270,6 +272,13 @@ the requested market type. `order_book()`, `candles()`, `position_tiers()`,
 `funding_rate_history()`, and `price_limit()` require `asset_id` through their
 Python signatures.
 
+`security_fund()` accepts `SecurityFundType.SECURITY_VAULT`,
+`SecurityFundType.SECURITY_FUND`, or `SecurityFundType.SUPPLEMENTARY_FUND`.
+Pass `asset_id` only with `SECURITY_FUND`; ExchangeOS requires it for that
+type and rejects it for the other two. The response follows the server's
+nested wrapper: `result[0].data[0]` is the fund record, and its `history`
+contains at most seven daily balance snapshots.
+
 Candles and funding history use `begin`/`end`; the removed `before`/`after`
 names are not accepted. Order-book `depth` must be between 1 and 400. Candle
 `bar` accepts `1m`, `5m`, `15m`, `1H`, `4H`, or `1D`. Funding history also
@@ -281,6 +290,7 @@ accepts an opaque `cursor` and a page size from 1 through 100.
 |---|---|---|
 | POST | `/api/v5/exchangeos/trade/place-order` | `place_order()` |
 | POST | `/api/v5/exchangeos/trade/cancel-order` | `cancel_order()` |
+| POST | `/api/v5/exchangeos/trade/noop` | `noop()` |
 | POST | `/api/v5/exchangeos/trade/modify-order` | `modify_order()` |
 | POST | `/api/v5/exchangeos/trade/cancel-all-after` | `cancel_all_after()` |
 | GET | `/api/v5/exchangeos/trade/transaction` | `transaction()` |
@@ -293,6 +303,8 @@ Signed write methods accept either a `SignedTransaction` or a mapping in its
 wire shape. OpenAPI defaults omitted write `mode` to synchronous receipt mode,
 which is the SDK contract. `orders_pending()` is also available as
 `pending_orders`, and `orders_history()` as `order_history` for compatibility.
+`noop()` accepts a signed `Noop` action, waits for the canonical receipt, and
+invalidates that transaction nonce without placing or canceling an order.
 
 For typed actions, `order_item()` requires `market_type` (`spot` or `perp`).
 Raw signed mappings are forwarded unchanged; the OpenAPI backend validates
@@ -337,6 +349,7 @@ for fill in fills_page.data:
 | GET | `/api/v5/exchangeos/account/position-tiers` | `position_tiers()` |
 | GET | `/api/v5/exchangeos/account/leverage-info` | `leverage_info()` |
 | GET | `/api/v5/exchangeos/account/trade-fee` | `trade_fee()` |
+| GET | `/api/v5/exchangeos/account/limits` | `limits()` |
 | GET | `/api/v5/exchangeos/account/bills` | `bills()` |
 | GET | `/api/v5/exchangeos/account/detail` | `detail()` |
 
@@ -356,6 +369,9 @@ selector. Bills use `begin`, `end`, and opaque `cursor` pagination and return a
 single `BillsPage` at result index zero. The Bills service treats `limit <= 0`
 as its default page size and caps larger values at 100, so the SDK forwards
 those values instead of applying the stricter Trade/Funding page validation.
+`limits(vault_address=...)` returns the action, daily CancelAll, cancellation
+exemption, and open-order limits for the authenticated parent account or owned
+subaccount. Numeric values remain exact decimal strings.
 
 ## Custom requests and WebSocket composition
 

@@ -571,7 +571,6 @@ def test_order_item_price_amend_type_is_emitted_when_requested() -> None:
         price_amend_type=PriceAmendType.NO_AMEND,
     )
 
-
     with pytest.raises(SigningError, match="reduce_only"):
         order_item(asset_id="1", side="buy", market_type="spot", price="2", size="3", reduce_only=1)
     with pytest.raises(SigningError, match="perp market"):

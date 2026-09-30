@@ -19,14 +19,18 @@ from exchangeos_sdk import (
     PendingOrders,
     PriceCandle,
     RestList,
+    SecurityFundResult,
+    SecurityFundType,
     Ticker,
     TradeFee,
     TransactionReceipt,
+    UserLimits,
     WriteResult,
 )
 from exchangeos_sdk.websocket.messages import ChannelDataMessage, parse_message
 from exchangeos_sdk.websocket.payloads import (
     BalanceAndPosition,
+    EstimatedPrice,
     FundingsPayload,
     PublicTrade,
     SettingUpdates,
@@ -154,6 +158,65 @@ def test_bills_use_data_zero_cursor_page_and_numeric_account_asset_ids() -> None
     bills_http.close()
 
 
+def test_account_limits_returns_typed_nested_limit_snapshot() -> None:
+    client, http = client_for(
+        [
+            {
+                "actionLimit": {
+                    "initial": "30000",
+                    "remaining": "400",
+                    "isThrottled": False,
+                    "throttleIntervalMs": "5000",
+                },
+                "cancelAll": {"dailyLimit": "10", "remaining": "8"},
+                "cancelExemption": {"limit": "62800", "remaining": "31800"},
+                "openOrders": {"current": "12", "limit": "2000", "userOverride": ""},
+                "block_timestamp": "1789462970000",
+            }
+        ],
+        path="/api/v5/exchangeos/account/limits",
+    )
+    result = client.account.limits(vault_address="0xvault")
+    limits = result[0]
+    assert isinstance(limits, UserLimits)
+    assert limits.action_limit.remaining == "400"
+    assert limits.action_limit.is_throttled is False
+    assert limits.cancel_all.daily_limit == "10"
+    assert limits.cancel_exemption.remaining == "31800"
+    assert limits.open_orders.user_override == ""
+    assert limits.block_timestamp == "1789462970000"
+    http.close()
+
+
+def test_security_fund_returns_typed_nested_snapshot() -> None:
+    client, http = client_for(
+        [
+            {
+                "data": [
+                    {
+                        "assetId": "2",
+                        "fundType": "securityFund",
+                        "fundValue": "12000.50",
+                        "block_timestamp": "1786636800000",
+                        "history": [{"cTime": "1786636800000", "balance": "12000.50"}],
+                    }
+                ]
+            }
+        ],
+        path="/api/v5/exchangeos/market/security-fund",
+    )
+    result = client.market.security_fund(SecurityFundType.SECURITY_FUND, asset_id="2")
+    page = result[0]
+    assert isinstance(page, SecurityFundResult)
+    assert page.data[0].asset_id == "2"
+    assert page.data[0].fund_type == "securityFund"
+    assert page.data[0].fund_value == "12000.50"
+    assert page.data[0].block_timestamp == "1786636800000"
+    assert page.data[0].history[0].c_time == "1786636800000"
+    assert page.data[0].history[0].balance == "12000.50"
+    http.close()
+
+
 def test_legacy_direct_funding_and_bills_pages_normalize_to_data_zero() -> None:
     cases = (
         ("/api/v5/exchangeos/market/funding-rate-history", "market", "funding_rate_history"),
@@ -211,6 +274,27 @@ def test_public_websocket_payloads_are_channel_specific() -> None:
     assert isinstance(trades[0], PublicTrade)
     assert trades[0].first_trade_id == "10"
     assert trades[0].price == "1"
+
+    estimated = channel(
+        "exchangeos-estimated-price",
+        [
+            {
+                "assetId": "9102",
+                "name": "UNI-USD-PERP",
+                "marketType": "perp",
+                "expTime": "1786636800000",
+                "settlePx": "1.2345",
+                "ts": "1786636700123",
+            }
+        ],
+    )
+    assert isinstance(estimated[0], EstimatedPrice)
+    assert estimated[0].asset_id == "9102"
+    assert estimated[0].name == "UNI-USD-PERP"
+    assert estimated[0].market_type == "perp"
+    assert estimated[0].exp_time == "1786636800000"
+    assert estimated[0].settle_px == "1.2345"
+    assert estimated[0].ts == "1786636700123"
 
     candles = channel(
         "exchangeos-mark-price-candle1m",

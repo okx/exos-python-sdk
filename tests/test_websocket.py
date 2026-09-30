@@ -89,7 +89,7 @@ async def eventually(predicate: Any, *, timeout: float = 1.0) -> None:
 
 
 def test_channel_inventory_and_canonical_names() -> None:
-    assert len(EXCHANGEOS_PUBLIC_CHANNELS) == 15
+    assert len(EXCHANGEOS_PUBLIC_CHANNELS) == 16
     assert len(EXCHANGEOS_PRIVATE_CHANNELS) == 9
     assert all(" " not in channel for channel in EXCHANGEOS_PUBLIC_CHANNELS)
 
@@ -100,6 +100,14 @@ def test_subscription_args_include_channel_first() -> None:
     ]
     with pytest.raises(ValueError, match="without spaces"):
         ExchangeOSWebSocket._build_args("exchangeos- mark-price", None)
+
+
+def test_estimated_price_requires_asset_id() -> None:
+    assert ExchangeOSWebSocket._build_args("exchangeos-estimated-price", [{"assetId": "9102"}]) == [
+        {"channel": "exchangeos-estimated-price", "assetId": "9102"}
+    ]
+    with pytest.raises(ValueError, match="requires parameter.*assetId"):
+        ExchangeOSWebSocket._build_args("exchangeos-estimated-price", None)
 
 
 @pytest.mark.parametrize(
@@ -165,6 +173,45 @@ async def test_public_subscribe_deduplicates_wire_frames() -> None:
     await ws.subscribe_public("exchangeos-tickers", asset_id=2)
     assert [json.loads(item) for item in socket.sent] == [
         {"op": "subscribe", "args": [{"channel": "exchangeos-tickers", "assetId": 2}]}
+    ]
+    await ws.close()
+
+
+@pytest.mark.asyncio
+async def test_estimated_price_subscription_uses_asset_id_wire_name() -> None:
+    socket = FakeSocket()
+    ws = ExchangeOSWebSocket(connector=Connector([socket]), ping_interval=60)
+    await ws.connect()
+    await ws.subscribe_public("exchangeos-estimated-price", asset_id="9102")
+    assert [json.loads(item) for item in socket.sent] == [
+        {
+            "op": "subscribe",
+            "args": [{"channel": "exchangeos-estimated-price", "assetId": "9102"}],
+        }
+    ]
+    await ws.close()
+
+
+@pytest.mark.asyncio
+async def test_estimated_price_subscription_replays_after_reconnect(monkeypatch: Any) -> None:
+    first, second = FakeSocket(), FakeSocket()
+    connector = Connector([first, second])
+    monkeypatch.setattr("exchangeos_sdk.websocket.transport.random.uniform", lambda *_: 0)
+    ws = ExchangeOSWebSocket(
+        connector=connector,
+        ping_interval=60,
+        reconnect_min=0,
+        reconnect_max=0,
+    )
+    await ws.connect()
+    await ws.subscribe_public("exchangeos-estimated-price", asset_id="9102")
+    await first.close()
+    await eventually(lambda: connector.calls >= 2 and ws.connected)
+    assert [json.loads(item) for item in second.sent] == [
+        {
+            "op": "subscribe",
+            "args": [{"channel": "exchangeos-estimated-price", "assetId": "9102"}],
+        }
     ]
     await ws.close()
 

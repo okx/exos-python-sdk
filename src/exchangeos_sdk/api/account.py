@@ -13,6 +13,7 @@ from ..models import (
     RestList,
     TradeFee,
     TransactionReceipt,
+    UserLimits,
 )
 from .base import ROOT, BaseAPI
 
@@ -29,6 +30,7 @@ ACCOUNT_ENDPOINTS = (
     "position_tiers",
     "leverage_info",
     "trade_fee",
+    "limits",
     "bills",
     "detail",
 )
@@ -147,6 +149,9 @@ class AccountAPI(BaseAPI):
 
     def trade_fee(self, asset_id: str | int) -> RestList[TradeFee]:
         return self._get(f"{self._ROOT}/trade-fee", assetId=asset_id)
+
+    def limits(self, *, vault_address: str | None = None) -> RestList[UserLimits]:
+        return self._get(f"{self._ROOT}/limits", vaultAddress=vault_address)
 
     def bills(
         self,

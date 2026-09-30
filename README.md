@@ -1,16 +1,16 @@
 # ExchangeOS Python SDK
 
-Python SDK for the ExchangeOS Spot and Perps APIs. It covers 35 synchronous
+Python SDK for the ExchangeOS Spot and Perps APIs. It covers 38 synchronous
 REST routes, local MessagePack + EIP-712 transaction signing, and resilient
 asynchronous public/private WebSocket subscriptions.
 
 ## Features
 
-- `client.market`: 12 public Spot and Perps market-data methods.
-- `client.trade`: 4 signed writes and 5 authenticated order queries.
-- `client.account`: 6 signed writes and 8 authenticated account queries.
+- `client.market`: 13 public Spot and Perps market-data methods.
+- `client.trade`: 5 signed writes and 5 authenticated order queries.
+- `client.account`: 6 signed writes and 9 authenticated account queries.
 - Local MessagePack and EIP-712 signing for supported transaction Actions.
-- 15 ExchangeOS public and 10 ExchangeOS private WebSocket channels.
+- 16 ExchangeOS public and 10 ExchangeOS private WebSocket channels.
 - Heartbeats, bounded queues, sequence-gap recovery, reconnect backoff, and subscription replay.
 - Decimal prices and quantities remain strings throughout the wire path.
 - Forward-compatible REST models preserve unknown fields and expose Decimal/UTC helpers.

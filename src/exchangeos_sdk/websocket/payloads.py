@@ -41,6 +41,17 @@ class PublicTrade(TypedRestObject):
     }
 
 
+class EstimatedPrice(TypedRestObject):
+    """Estimated settlement state emitted while a perpetual is delisting."""
+
+    asset_id: str
+    name: str
+    market_type: str
+    exp_time: str
+    settle_px: str
+    ts: str
+
+
 class UserFunding(TypedRestObject):
     asset_id: int
     funding_fee: str
@@ -129,6 +140,7 @@ CHANNEL_PAYLOAD_MODELS: dict[str, type[TypedRestObject]] = {
     "exchangeos-trades": PublicTrade,
     "exchangeos-mark-price": MarkPrice,
     "exchangeos-index-tickers": IndexTicker,
+    "exchangeos-estimated-price": EstimatedPrice,
     "exchangeos-funding-rate": FundingRate,
     "exchangeos-instruments": Instrument,
     "exchangeos-open-interest": OpenInterest,
@@ -180,6 +192,7 @@ __all__ = [
     "AccountInfo",
     "AssetSetting",
     "BalanceAndPosition",
+    "EstimatedPrice",
     "FundingsPayload",
     "LedgerUpdate",
     "LedgerUpdatesPayload",
