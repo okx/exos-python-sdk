@@ -9,7 +9,7 @@ Notable changes to ExchangeOS Python SDK releases are recorded here.
 - Add the public `exchangeos-estimated-price` WebSocket channel with required
   `assetId`, reconnect replay, and typed payload parsing.
 - Complete the release-candidate compatibility and live-environment validation
-  checklist before publishing `0.1.0`.
+  checklist before publishing `0.2.0`.
 
 ## 0.1.0
 

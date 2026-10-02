@@ -312,7 +312,7 @@ class ExchangeOSWebSocket:
             except ImportError as exc:
                 raise TransportError("install the SDK with its WebSocket dependency") from exc
             connector = connect
-        headers = {"User-Agent": "EXCHANGEOS_PYTHON_SDK_0.1.0"}
+        headers = {"User-Agent": "EXCHANGEOS_PYTHON_SDK_0.2.0"}
         if self.bearer_token:
             headers["Authorization"] = f"Bearer {self.bearer_token}"
         async with connector(
