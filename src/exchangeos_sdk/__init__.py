@@ -33,8 +33,11 @@ from .models import (
     AccountResponse,
     Bill,
     BillsPage,
+    CancelAllAfterResult,
     Candle,
     Fill,
+    FillDir,
+    FillDirection,
     FillsPage,
     FundingRate,
     FundingRateHistory,
@@ -76,6 +79,7 @@ from .models import (
     UserActionLimit,
     UserCancelAllLimit,
     UserCancelExemption,
+    UserFill,
     UserLimits,
     UserOpenOrdersLimit,
     WriteResult,
@@ -235,7 +239,10 @@ __all__ = [
     "Bill",
     "BillsPage",
     "Candle",
+    "CancelAllAfterResult",
     "Fill",
+    "FillDir",
+    "FillDirection",
     "FillsPage",
     "FundingRate",
     "FundingRateHistory",
@@ -266,6 +273,7 @@ __all__ = [
     "UserActionLimit",
     "UserCancelAllLimit",
     "UserCancelExemption",
+    "UserFill",
     "UserLimits",
     "UserOpenOrdersLimit",
     "WriteResult",
@@ -301,4 +309,4 @@ __all__ = [
     "validate_client_order_id",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

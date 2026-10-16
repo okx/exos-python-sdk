@@ -7,14 +7,18 @@ from exchangeos_sdk import (
     AccountPositionTier,
     BearerAuth,
     BillsPage,
+    CancelAllAfterResult,
     Candle,
     Chain,
     Environment,
     ExchangeOSClient,
+    FillDirection,
     FillsPage,
     Instrument,
     LeverageInfo,
     MaxSize,
+    Order,
+    OrderHistory,
     OrderHistoryPage,
     PendingOrders,
     PriceCandle,
@@ -22,10 +26,10 @@ from exchangeos_sdk import (
     SecurityFundResult,
     SecurityFundType,
     Ticker,
+    TokenInfo,
     TradeFee,
     TransactionReceipt,
     UserLimits,
-    WriteResult,
 )
 from exchangeos_sdk.websocket.messages import ChannelDataMessage, parse_message
 from exchangeos_sdk.websocket.payloads import (
@@ -34,6 +38,7 @@ from exchangeos_sdk.websocket.payloads import (
     FundingsPayload,
     PublicTrade,
     SettingUpdates,
+    UserFillsPayload,
     UserOrderStatus,
 )
 
@@ -78,6 +83,16 @@ def test_market_endpoint_returns_concrete_models_and_nested_models() -> None:
     http.close()
 
 
+def test_token_info_includes_optional_wei_decimals() -> None:
+    client, http = client_for(
+        [{"tokenId": "0", "tokenName": "USDS", "pointFlag": False, "weiDecimals": 6}]
+    )
+    result = client.market.token_info()
+    assert isinstance(result[0], TokenInfo)
+    assert result[0].wei_decimals == 6
+    http.close()
+
+
 def test_candle_rows_have_named_fields_without_losing_wire_values() -> None:
     row = ["1710000000000", "1", "2", "0.5", "1.5", "10", "15", "15", "1"]
     client, http = client_for([row])
@@ -106,13 +121,32 @@ def test_transaction_receipt_and_statuses_are_recursively_typed() -> None:
     http.close()
 
 
+def test_transaction_receipt_confirmation_fields_are_optional() -> None:
+    client, http = client_for([{"txHash": "0xpending"}])
+    receipt = client.trade.transaction("0xpending")[0]
+    assert isinstance(receipt, TransactionReceipt)
+    assert receipt.tx_hash == "0xpending"
+    assert receipt.block_height is None
+    assert receipt.response is None
+    http.close()
+
+
 def test_private_rest_container_models_nested_orders_and_balances() -> None:
     pending_client, pending_http = client_for(
-        [{"nextCursor": None, "hasMore": False, "data": [{"oid": "7", "attachAlgoOrds": []}]}]
+        [
+            {
+                "block_height": "11892975",
+                "block_timestamp": "1785062091486",
+                "data": [{"oid": "7", "assetStatus": "normal", "attachAlgoOrds": []}],
+            }
+        ]
     )
     pending = pending_client.trade.orders_pending()
     assert isinstance(pending[0], PendingOrders)
     assert pending[0].data[0].oid == "7"
+    assert pending[0].block_height == "11892975"
+    assert pending[0].block_timestamp == "1785062091486"
+    assert pending[0].data[0].asset_status == "normal"
     assert pending[0].data[0].extra == {}
     pending_http.close()
 
@@ -123,28 +157,112 @@ def test_private_rest_container_models_nested_orders_and_balances() -> None:
     balance_http.close()
 
 
-def test_trade_cursor_pages_type_the_page_and_nested_rows() -> None:
+def test_trade_pages_type_the_page_and_nested_rows() -> None:
     cases = (
         (
             "orders_pending",
             PendingOrders,
-            {"oid": "7", "assetId": 602, "attachAlgoOrds": []},
+            {
+                "block_height": "11892975",
+                "block_timestamp": "1785062091486",
+                "data": [
+                    {"oid": "7", "assetId": 602, "assetStatus": "normal", "attachAlgoOrds": []}
+                ],
+            },
         ),
         (
             "orders_history",
             OrderHistoryPage,
-            {"oid": "8", "assetId": 602, "children": []},
+            {"oid": "8", "assetId": 602},
         ),
         ("fills", FillsPage, {"tradeId": "9", "assetId": 602}),
     )
     for method_name, page_type, row in cases:
-        client, http = client_for([{"nextCursor": "opaque", "hasMore": True, "data": [row]}])
+        if method_name == "orders_pending":
+            client, http = client_for([row])
+        else:
+            client, http = client_for([{"nextCursor": "opaque", "hasMore": True, "data": [row]}])
         result = getattr(client.trade, method_name)()
         assert isinstance(result[0], page_type)
-        assert result[0].next_cursor == "opaque"
-        assert result[0].has_more is True
-        assert result[0].data[0].asset_id == 602
+        if method_name == "orders_pending":
+            assert result[0].block_height == "11892975"
+            assert result[0].block_timestamp == "1785062091486"
+            assert result[0].data[0].asset_id == 602
+        else:
+            assert result[0].next_cursor == "opaque"
+            assert result[0].has_more is True
+            assert result[0].data[0].asset_id == 602
         http.close()
+
+
+def test_trade_response_field_updates_are_typed() -> None:
+    client, http = client_for(
+        [
+            {
+                "nextCursor": None,
+                "hasMore": False,
+                "data": [
+                    {
+                        "tradeId": "9",
+                        "assetId": "602",
+                        "pnl": "-1.25",
+                        "fillDir": "BackstopLiquidation",
+                        "block_height": "12345678",
+                        "block_timestamp": "1789462970000",
+                    }
+                ],
+            }
+        ],
+        path="/api/v5/exchangeos/trade/fills",
+    )
+    fills = client.trade.fills()[0].data[0]
+    assert fills.pnl == "-1.25"
+    assert fills.fill_dir == FillDirection.BACKSTOP_LIQUIDATION.value
+    assert fills.block_height == "12345678"
+    assert fills.block_timestamp == "1789462970000"
+    assert "closedPnl" not in fills
+    http.close()
+
+
+def test_order_and_pending_order_updated_fields() -> None:
+    order_client, order_http = client_for(
+        [
+            {
+                "oid": "7",
+                "block_height": "12345678",
+                "block_timestamp": "1789462970000",
+            }
+        ],
+        path="/api/v5/exchangeos/trade/order",
+    )
+    order = order_client.trade.order(oid="7")[0]
+    assert order.block_height == "12345678"
+    assert order.block_timestamp == "1789462970000"
+    assert "u_time" not in Order._wire_fields
+    order_http.close()
+
+    pending_client, pending_http = client_for(
+        [
+            {
+                "block_height": "12345679",
+                "block_timestamp": "1789462971000",
+                "data": [{"oid": "8", "assetStatus": "normal"}],
+            }
+        ],
+        path="/api/v5/exchangeos/trade/orders-pending",
+    )
+    pending_page = pending_client.trade.orders_pending()[0]
+    pending = pending_page.data[0]
+    assert pending_page.block_height == "12345679"
+    assert pending_page.block_timestamp == "1789462971000"
+    assert pending.asset_status == "normal"
+    assert "avgPx" not in pending
+    assert "avg_px" not in type(pending)._wire_fields
+    assert "block_height" not in type(pending)._wire_fields
+    assert "block_timestamp" not in type(pending)._wire_fields
+    assert "error_code" not in OrderHistory._wire_fields
+    assert "children" not in OrderHistory._wire_fields
+    pending_http.close()
 
 
 def test_bills_use_data_zero_cursor_page_and_numeric_account_asset_ids() -> None:
@@ -171,6 +289,7 @@ def test_account_limits_returns_typed_nested_limit_snapshot() -> None:
                 "cancelAll": {"dailyLimit": "10", "remaining": "8"},
                 "cancelExemption": {"limit": "62800", "remaining": "31800"},
                 "openOrders": {"current": "12", "limit": "2000", "userOverride": ""},
+                "block_height": "12345678",
                 "block_timestamp": "1789462970000",
             }
         ],
@@ -184,6 +303,7 @@ def test_account_limits_returns_typed_nested_limit_snapshot() -> None:
     assert limits.cancel_all.daily_limit == "10"
     assert limits.cancel_exemption.remaining == "31800"
     assert limits.open_orders.user_override == ""
+    assert limits.block_height == "12345678"
     assert limits.block_timestamp == "1789462970000"
     http.close()
 
@@ -246,12 +366,15 @@ def test_legacy_direct_funding_and_bills_pages_normalize_to_data_zero() -> None:
 
 
 def test_cancel_all_after_uses_expires_after_wire_name() -> None:
-    client, http = client_for([{"code": "0", "serverTimestamp": "1000", "expiresAfter": "61000"}])
+    client, http = client_for([{"serverTimestamp": "1000", "expiresAfter": "61000"}])
     result = client.trade.cancel_all_after(
         {"action": {"type": "cancelAll", "marketType": "perp"}, "nonce": 1}
     )
-    assert isinstance(result[0], WriteResult)
+    assert isinstance(result[0], CancelAllAfterResult)
+    assert result[0].server_timestamp == "1000"
     assert result[0].expires_after == "61000"
+    assert {"serverTimestamp", "expiresAfter"}.issubset(type(result[0])._wire_fields)
+    assert "code" not in type(result[0])._wire_fields
     assert "expireAt" not in result[0]
     http.close()
 
@@ -340,6 +463,46 @@ def test_private_websocket_payload_shapes_follow_documented_containers() -> None
     assert settings.asset_setting[0].leverage == "10"
 
 
-def test_user_fills_channel_is_a_direct_list_not_an_invented_wrapper() -> None:
-    fills = channel("exchangeos-user-fills", [{"tradeId": "1", "price": "2"}])
+def test_user_fills_channel_models_current_wrapper_and_pnl_fields() -> None:
+    message = parse_message(
+        {
+            "arg": {
+                "channel": "exchangeos-user-fills",
+                "marketTypes": '["all"]',
+                "pointBoard": "true",
+            },
+            "backend": "indexerpubsub",
+            "block_height": "150845315",
+            "block_timestamp": "1792120122626",
+            "data": {
+                "fills": [
+                    {
+                        "tradeId": "49680",
+                        "assetId": "1602",
+                        "price": "217.99",
+                        "size": "0.019",
+                        "pnl": "0.000000",
+                        "rebateTokenId": "",
+                        "fillDir": "Open",
+                    }
+                ]
+            },
+            "pTime": "1792120122678",
+            "user": "0xuser",
+        }
+    )
+    assert isinstance(message, ChannelDataMessage)
+    assert isinstance(message.data, UserFillsPayload)
+    fill = message.data.fills[0]
+    assert fill.trade_id == "49680"
+    assert fill.pnl == "0.000000"
+    assert fill.rebate_token_id == ""
+    assert fill.fill_dir == FillDirection.OPEN.value
+    assert message.block_height == "150845315"
+    assert message.block_timestamp == "1792120122626"
+
+
+def test_user_fills_channel_accepts_legacy_bare_list_shape() -> None:
+    fills = channel("exchangeos-user-fills", [{"tradeId": "1", "pnl": "0"}])
     assert fills[0].trade_id == "1"
+    assert fills[0].pnl == "0"

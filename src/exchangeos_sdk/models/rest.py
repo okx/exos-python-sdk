@@ -90,6 +90,7 @@ class TypedRestObject(RestObject):
     _aliases: ClassVar[dict[str, str]] = {}
     _nested: ClassVar[dict[str, type[TypedRestObject]]] = {}
     _nested_lists: ClassVar[dict[str, type[TypedRestObject]]] = {}
+    _optional_fields: ClassVar[frozenset[str]] = frozenset()
     _wire_fields: ClassVar[frozenset[str]] = frozenset()
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -119,6 +120,8 @@ class TypedRestObject(RestObject):
         try:
             return self[wire_name]
         except KeyError:
+            if name in getattr(type(self), "_optional_fields", frozenset()):
+                return None
             # Forward-compatible responses may contain fields that were not
             # present when this SDK version was released. Resolve their
             # camelCase wire key dynamically instead of requiring a model

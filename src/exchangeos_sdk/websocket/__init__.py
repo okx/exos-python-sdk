@@ -18,6 +18,8 @@ from .payloads import (
     OrdersPayload,
     PublicTrade,
     SettingUpdates,
+    UserFill,
+    UserFillsPayload,
     UserFunding,
     UserOrderStatus,
 )
@@ -43,5 +45,7 @@ __all__ = [
     "PublicTrade",
     "SettingUpdates",
     "UserFunding",
+    "UserFill",
+    "UserFillsPayload",
     "UserOrderStatus",
 ]

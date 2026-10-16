@@ -1,8 +1,9 @@
 # REST API coverage
 
-All methods are synchronous. Public methods need no credentials. Private
-reads use OKX V5 request authentication, while private writes accept an
-EIP-712 signed transaction envelope.
+All methods are synchronous. Public methods work without credentials; when
+credentials or a bearer token are configured, public REST methods authenticate
+the request as well. Private reads use OKX V5 request authentication, while
+private writes accept an EIP-712 signed transaction envelope.
 
 Create the client with either API credentials or a bearer token. The two modes
 are mutually exclusive. Calling a private method without either one raises
@@ -47,9 +48,12 @@ envelope to the top-level model as `raw_response`.
 Common model enums such as `OrderState`, `Side`, and `TimeInForce` retain an
 unknown server string instead of failing to parse it.
 
-All paginated methods use the unified `data[0]` envelope. Their result contains
+Collection methods use the unified `data[0]` envelope. Their result contains
 one `FundingRateHistoryPage`, `BillsPage`, `PendingOrders`, `OrderHistoryPage`,
-or `FillsPage`. Every page exposes `data`, `has_more`, and `next_cursor`.
+or `FillsPage`. Funding, bills, order-history, and fills pages expose `data`,
+`has_more`, and `next_cursor`. Pending orders expose `block_height`,
+`block_timestamp`, and `data`; the block metadata describes the snapshot
+returned by that response.
 Transitional deployments that return Funding/Bills pages directly are
 normalized to the same SDK shape.
 
@@ -261,6 +265,9 @@ client = ExchangeOSClient(
 | GET | `/api/v5/exchangeos/market/index-tickers` | `index_tickers()` |
 | GET | `/api/v5/exchangeos/market/security-fund` | `security_fund()` |
 
+`token_info()` exposes the optional `wei_decimals` precision field as an
+integer; it remains `None` when the backend has no precision value.
+
 Use `RestMarketType.SPOT` or `RestMarketType.PERP` for `instruments()` and
 `tickers()`. Strings remain accepted for forward compatibility. `asset_id`
 accepts a string or integer and is serialized as `assetId`. Instrument filters
@@ -307,9 +314,10 @@ which is the SDK contract. `orders_pending()` is also available as
 invalidates that transaction nonce without placing or canceling an order.
 
 For typed actions, `order_item()` requires `market_type` (`spot` or `perp`).
-Raw signed mappings are forwarded unchanged; the OpenAPI backend validates
-required fields such as `marketType` and `clientOrderId`. The signing helper
-preserves `client_order_id` when supplied but does not generate one implicitly.
+When `client_order_id` is omitted, the helper generates a valid API client
+order ID and includes it in the signed action. Raw signed mappings are
+forwarded unchanged; the OpenAPI backend validates required fields such as
+`marketType` and `clientOrderId`.
 
 For `cancel`, a cancellation may also omit `marketType` according to the
 current ExchangeOS API contract. `cancelAll` continues to require
@@ -321,9 +329,20 @@ currently applies the rule that exactly one identifier must be provided.
 Identifier formats and Trade list query values are likewise validated by the
 server, keeping the SDK compatible with future API changes.
 
-Pending orders, history, and fills accept `point_board`, `cursor`, and `limit`.
+Pending orders accept `point_board`, `asset_id`, and `vault_address`.
+Order history and fills additionally accept `cursor` and `limit`.
+The pending-order response places `block_height` and `block_timestamp` on the
+page wrapper and adds `assetStatus` to each order. Pending orders do not expose
+`avgPx`.
+Typed REST fill rows expose realized PnL as `pnl`, include `block_height`, and
+use the PascalCase `fillDir` vocabulary shared with the WebSocket stream.
 History and fills use the exclusive time bounds `begin` and `end`; legacy
 `before` and `after` are rejected by the server.
+
+`cancel_all_after()` returns a dedicated `CancelAllAfterResult` containing only
+`server_timestamp` and `expires_after`. Confirmed transaction receipts expose
+the block and response fields; asynchronous or not-yet-confirmed responses may
+contain only `tx_hash`, so those confirmation fields are optional.
 
 ```python
 order = client.trade.order(client_order_id="0x...")

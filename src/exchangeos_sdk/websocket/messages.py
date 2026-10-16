@@ -89,8 +89,32 @@ class ChannelDataMessage(WebSocketMessage):
     action: str | None = None
 
     @property
+    def block_height(self) -> str | None:
+        """Chain height attached to data frames that carry snapshot metadata."""
+
+        value = self.raw.get("block_height", self.raw.get("blockHeight"))
+        return str(value) if value is not None else None
+
+    @property
+    def block_timestamp(self) -> str | None:
+        """Chain timestamp attached to data frames, in Unix milliseconds."""
+
+        value = self.raw.get("block_timestamp", self.raw.get("blockTimestamp"))
+        return str(value) if value is not None else None
+
+    @property
     def _known_fields(self) -> frozenset[str]:
-        return frozenset({"arg", "data", "action"})
+        return frozenset(
+            {
+                "arg",
+                "data",
+                "action",
+                "block_height",
+                "blockHeight",
+                "block_timestamp",
+                "blockTimestamp",
+            }
+        )
 
 
 @dataclass(frozen=True)

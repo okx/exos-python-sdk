@@ -8,7 +8,6 @@ from ..models.responses import (
     AccountBalance,
     BalanceDetail,
     Candle,
-    Fill,
     FundingRate,
     IndexTicker,
     Instrument,
@@ -20,6 +19,7 @@ from ..models.responses import (
     PriceCandle,
     PriceLimit,
     Ticker,
+    UserFill,
 )
 from ..models.rest import RestData, RestList, TypedRestObject, parse_rest_data
 
@@ -109,6 +109,14 @@ class FundingsPayload(TypedRestObject):
     _nested_lists: ClassVar = {"fundings": UserFunding}
 
 
+class UserFillsPayload(TypedRestObject):
+    """Container returned by ``exchangeos-user-fills`` data frames."""
+
+    fills: list[UserFill]
+
+    _nested_lists: ClassVar = {"fills": UserFill}
+
+
 class LedgerUpdatesPayload(TypedRestObject):
     ledger_updates: list[LedgerUpdate]
     _nested_lists: ClassVar = {"ledgerUpdates": LedgerUpdate}
@@ -154,7 +162,7 @@ CHANNEL_PAYLOAD_MODELS: dict[str, type[TypedRestObject]] = {
     "exchangeos-balance-and-position-updates": BalanceAndPosition,
     "exchangeos-orders": OrdersPayload,
     "exchangeos-user-order-status": UserOrderStatus,
-    "exchangeos-user-fills": Fill,
+    "exchangeos-user-fills": UserFillsPayload,
     "exchangeos-user-fundings": FundingsPayload,
     "exchangeos-user-ledger-updates": LedgerUpdatesPayload,
     "exchangeos-setting-updates": SettingUpdates,
@@ -184,6 +192,10 @@ def parse_channel_payload(channel: str, data: Any) -> RestData:
                 ]
             )
         return parse_rest_data(data)
+    # Older deployments returned user fills as a bare list. Keep accepting
+    # that shape while modeling the current ``{"fills": [...]}`` wrapper.
+    if channel == "exchangeos-user-fills" and isinstance(data, list):
+        return RestList([parse_rest_data(item, model=UserFill) for item in data])
     return parse_rest_data(data, model=CHANNEL_PAYLOAD_MODELS.get(channel))
 
 
@@ -200,6 +212,8 @@ __all__ = [
     "PublicTrade",
     "SettingUpdates",
     "UserFunding",
+    "UserFill",
+    "UserFillsPayload",
     "UserOrderStatus",
     "parse_channel_payload",
 ]

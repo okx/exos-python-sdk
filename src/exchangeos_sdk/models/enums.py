@@ -33,6 +33,39 @@ class SecurityFundType(OpenStringEnum):
     SUPPLEMENTARY_FUND = "supplementaryFund"
 
 
+class FillDirection(OpenStringEnum):
+    """Fill-direction values shared by REST fill history and WS user fills.
+
+    The values intentionally use the WebSocket PascalCase wire vocabulary.
+    ``OpenStringEnum`` keeps newly introduced directions usable without an SDK
+    release while still providing discoverable constants for the published set.
+    """
+
+    BUY = "Buy"
+    SELL = "Sell"
+    BUY_SPLIT = "BuySplit"
+    SELL_MERGE = "SellMerge"
+    BACKSTOP_LIQUIDATION = "BackstopLiquidation"
+    BACKSTOP_LIQUIDATOR = "BackstopLiquidator"
+    ADL = "Adl"
+    ADL_OPPONENT = "AdlOpponent"
+    ADL_PREVIOUS_PRICE = "AdlPreviousPrice"
+    ADL_OPPONENT_PREVIOUS_PRICE = "AdlOpponentPreviousPrice"
+    NET_LIQUIDATION = "NetLiquidation"
+    NET_ADL = "NetAdl"
+    SETTLEMENT = "Settlement"
+    OPEN = "Open"
+    CLOSE = "Close"
+    REVERSE_OPEN = "ReverseOpen"
+    DECIMAL_ADJUST_SETTLE = "DecimalAdjustSettle"
+    DECIMAL_ADJUST_TAKEOVER = "DecimalAdjustTakeover"
+
+
+# The shorter name mirrors the API's ``fillDir`` terminology and the
+# corresponding TradeZone enum while retaining the descriptive public name.
+FillDir = FillDirection
+
+
 class OrderState(OpenStringEnum):
     OPEN = "open"
     PARTIALLY_FILLED = "partially_filled"

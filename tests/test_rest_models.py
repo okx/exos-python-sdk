@@ -16,7 +16,15 @@ from exchangeos_sdk import (
     Ticker,
 )
 from exchangeos_sdk.exceptions import ConfigurationError, TransportError, ValidationError
-from exchangeos_sdk.models import MarketType, OrderState, TimeInForce, as_decimal, as_utc_datetime
+from exchangeos_sdk.models import (
+    FillDir,
+    FillDirection,
+    MarketType,
+    OrderState,
+    TimeInForce,
+    as_decimal,
+    as_utc_datetime,
+)
 
 TEST_ENVIRONMENT = Environment.custom(
     name="test",
@@ -108,6 +116,32 @@ def test_rest_order_enums_match_the_openapi_wire_vocabulary() -> None:
     }
     assert {value.value for value in TimeInForce} == {"gtc", "ioc", "fok", "alo", "gtd"}
     assert TimeInForce.POST_ONLY is TimeInForce.ALO
+
+
+def test_fill_direction_enum_matches_websocket_wire_vocabulary() -> None:
+    expected = {
+        "Buy",
+        "Sell",
+        "BuySplit",
+        "SellMerge",
+        "BackstopLiquidation",
+        "BackstopLiquidator",
+        "Adl",
+        "AdlOpponent",
+        "AdlPreviousPrice",
+        "AdlOpponentPreviousPrice",
+        "NetLiquidation",
+        "NetAdl",
+        "Settlement",
+        "Open",
+        "Close",
+        "ReverseOpen",
+        "DecimalAdjustSettle",
+        "DecimalAdjustTakeover",
+    }
+    assert {direction.value for direction in FillDirection} == expected
+    assert FillDir is FillDirection
+    assert FillDirection("future-direction").value == "future-direction"
 
 
 def test_rest_hook_receives_safe_start_and_end_metadata() -> None:

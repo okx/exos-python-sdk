@@ -96,6 +96,11 @@ exchangeos-user-ledger-updates
 exchangeos-setting-updates
 ```
 
+`exchangeos-user-fills` data is returned as a `UserFillsPayload` containing a
+`fills` list of `UserFill` models. The rows use `pnl`, `rebateTokenId`, and
+`fillDir` with the same PascalCase direction vocabulary as REST fill history.
+The message envelope carries `block_height` and `block_timestamp`.
+
 Replace `{bar}` with the server interval, for example
 `exchangeos-candle1m`.
 

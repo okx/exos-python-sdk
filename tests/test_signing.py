@@ -588,7 +588,8 @@ def test_order_item_price_amend_type_is_emitted_when_requested() -> None:
 
 def test_order_item_allows_omitted_client_order_id() -> None:
     item = order_item(asset_id="1", side="buy", market_type="spot", price="2", size="3")
-    assert "clientOrderId" not in item
+    assert validate_client_order_id(item["clientOrderId"])
+    assert item["clientOrderId"].startswith("0x03")
 
 
 def test_place_and_cancel_action_optional_and_empty_branches() -> None:

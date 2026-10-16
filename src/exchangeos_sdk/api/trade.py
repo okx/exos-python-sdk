@@ -3,6 +3,7 @@
 from typing import Any
 
 from ..models import (
+    CancelAllAfterResult,
     FillsPage,
     Order,
     OrderHistoryPage,
@@ -10,7 +11,6 @@ from ..models import (
     PendingOrders,
     RestList,
     TransactionReceipt,
-    WriteResult,
 )
 from .base import ROOT, BaseAPI
 
@@ -64,7 +64,7 @@ class TradeAPI(BaseAPI):
             expected_action_type="modify",
         )
 
-    def cancel_all_after(self, signed_transaction: Any) -> RestList[WriteResult]:
+    def cancel_all_after(self, signed_transaction: Any) -> RestList[CancelAllAfterResult]:
         return self._post(
             f"{self._ROOT}/cancel-all-after",
             signed_transaction,
@@ -93,16 +93,12 @@ class TradeAPI(BaseAPI):
         *,
         point_board: bool | None = None,
         asset_id: str | int | None = None,
-        cursor: str | None = None,
-        limit: int | None = None,
         vault_address: str | None = None,
     ) -> RestList[PendingOrders]:
         return self._get(
             f"{self._ROOT}/orders-pending",
             pointBoard=point_board,
             assetId=asset_id,
-            cursor=cursor,
-            limit=limit,
             vaultAddress=vault_address,
         )
 

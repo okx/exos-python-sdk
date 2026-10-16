@@ -7,7 +7,7 @@ def test_public_api_exports_primary_client_and_transports() -> None:
     assert sdk.ExchangeOSClient.__name__ == "ExchangeOSClient"
     assert sdk.ExchangeOSWebSocket.__name__ == "ExchangeOSWebSocket"
     assert sdk.Credentials.__name__ == "Credentials"
-    assert sdk.__version__ == "0.2.0"
+    assert sdk.__version__ == "0.3.0"
     assert not hasattr(sdk, "OutcomesResponse")
 
 

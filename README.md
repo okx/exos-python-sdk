@@ -10,7 +10,7 @@ asynchronous public/private WebSocket subscriptions.
 - `client.trade`: 5 signed writes and 5 authenticated order queries.
 - `client.account`: 6 signed writes and 9 authenticated account queries.
 - Local MessagePack and EIP-712 signing for supported transaction Actions.
-- 16 ExchangeOS public and 10 ExchangeOS private WebSocket channels.
+- 16 ExchangeOS public and 9 ExchangeOS private WebSocket channels.
 - Heartbeats, bounded queues, sequence-gap recovery, reconnect backoff, and subscription replay.
 - Decimal prices and quantities remain strings throughout the wire path.
 - Forward-compatible REST models preserve unknown fields and expose Decimal/UTC helpers.
@@ -66,7 +66,7 @@ client = ExchangeOSClient(auth=credentials)
 
 | Task | Required credential | Notes |
 |---|---|---|
-| Public REST or public WebSocket | None | Start here to verify installation. |
+| Public REST or public WebSocket | None | Start here to verify installation; configured REST credentials may still be sent for public REST calls. |
 | Private REST reads or private WebSocket | CEX API key, secret, and passphrase | Passed as `Credentials`. |
 | Local transaction signing | Authorized Agent private key | Passed only to `client.sign_action(...)`; no network request is made. |
 | Submit a signed transaction | CEX API credentials and a `SignedTransaction` | The submitting process need not hold the Agent private key. |

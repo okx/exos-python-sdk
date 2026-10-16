@@ -54,7 +54,14 @@ class BaseAPI:
         return cast(ResponseT, self._client.request("GET", path, params=params, auth=True))
 
     def _public_get(self, path: str, **params: Any) -> ResponseT:  # type: ignore[type-var]
-        return cast(ResponseT, self._client.request("GET", path, params=params, auth=False))
+        # Public endpoints work without credentials, but authenticate when the
+        # caller supplied credentials so the server can apply account-scoped
+        # limits, attribution, or richer response behavior.
+        has_auth = bool(
+            getattr(self._client, "credentials", None)
+            or getattr(self._client, "bearer_token", None)
+        )
+        return cast(ResponseT, self._client.request("GET", path, params=params, auth=has_auth))
 
     def _post(
         self,

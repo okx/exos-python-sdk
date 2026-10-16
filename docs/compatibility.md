@@ -26,10 +26,11 @@ Java 17 toolchain is unavailable, pytest reports the cross-SDK tests as skipped.
 Shared Action signatures, including delegated-account signatures with `vaultAddress`, must pass
 without compatibility exceptions.
 
-`Action.types()` is the authoritative 15-type Python signing inventory. Ten
-types serve Spot/Perps trading and account operations; five types remain for
-existing Outcomes signing-protocol compatibility. The compatibility inventory
-does not add Outcomes REST resources or WebSocket channels.
+`Action.types()` is the authoritative 15-type Python signing inventory. Twelve
+types serve ExchangeOS trading, account, and protocol operations; three
+`Prediction*` types remain for existing Outcomes signing-protocol
+compatibility. The compatibility inventory does not add Outcomes REST
+resources or WebSocket channels.
 
 ## REST routes
 

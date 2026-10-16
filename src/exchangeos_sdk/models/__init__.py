@@ -1,6 +1,15 @@
 """Forward-compatible REST response models and value helpers."""
 
-from .enums import MarketType, OpenStringEnum, OrderState, SecurityFundType, Side, TimeInForce
+from .enums import (
+    FillDir,
+    FillDirection,
+    MarketType,
+    OpenStringEnum,
+    OrderState,
+    SecurityFundType,
+    Side,
+    TimeInForce,
+)
 from .responses import (
     AccountBalance,
     AccountDetail,
@@ -9,6 +18,7 @@ from .responses import (
     BalanceDetail,
     Bill,
     BillsPage,
+    CancelAllAfterResult,
     Candle,
     Fill,
     FillsPage,
@@ -43,6 +53,7 @@ from .responses import (
     UserActionLimit,
     UserCancelAllLimit,
     UserCancelExemption,
+    UserFill,
     UserLimits,
     UserOpenOrdersLimit,
     WriteResult,
@@ -71,7 +82,10 @@ __all__ = [
     "Bill",
     "BillsPage",
     "Candle",
+    "CancelAllAfterResult",
     "Fill",
+    "FillDir",
+    "FillDirection",
     "FillsPage",
     "FundingRate",
     "FundingRateHistory",
@@ -114,6 +128,7 @@ __all__ = [
     "UserActionLimit",
     "UserCancelAllLimit",
     "UserCancelExemption",
+    "UserFill",
     "UserLimits",
     "UserOpenOrdersLimit",
     "WriteResult",

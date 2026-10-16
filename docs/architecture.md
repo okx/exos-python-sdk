@@ -37,7 +37,7 @@ exchangeos_sdk/
 │   │   ├── action.py         # All 15 typed Action variants and canonical fields
 │   │   ├── trade.py          # Place/cancel/modify builders
 │   │   ├── account.py        # Account-setting builders
-│   │   └── outcomes.py       # Signing-protocol compatibility builders only
+│   │   └── outcomes.py       # Compatibility builders for legacy/protocol actions
 │   └── protocol.py           # MessagePack, EIP-712, sign, and recover
 └── websocket/
     ├── channels.py           # Channel inventory and matching

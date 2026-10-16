@@ -1,4 +1,4 @@
-"""Compatibility constructors for typed Outcomes Action variants."""
+"""Compatibility constructors for legacy and protocol Action variants."""
 
 from typing import Any
 

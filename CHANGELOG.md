@@ -2,14 +2,15 @@
 
 Notable changes to ExchangeOS Python SDK releases are recorded here.
 
-## Unreleased
+## 0.3.0
 
 - Add typed `GET /account/limits`, `GET /market/security-fund`, and signed
   `POST /trade/noop` support from the latest ExchangeOS OpenAPI controllers.
 - Add the public `exchangeos-estimated-price` WebSocket channel with required
   `assetId`, reconnect replay, and typed payload parsing.
-- Complete the release-candidate compatibility and live-environment validation
-  checklist before publishing `0.2.0`.
+- Align typed REST and WebSocket response models with the current TradeZone
+  contract, including fill metadata and optional transaction confirmations.
+- Make `order_item()` generate a valid API client order ID when omitted.
 
 ## 0.1.0
 

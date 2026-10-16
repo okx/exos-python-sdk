@@ -16,6 +16,7 @@ class TokenInfo(TypedRestObject):
     token_id: str
     token_name: str
     point_flag: bool
+    wei_decimals: int | None
 
 
 class UpcomingParameterChange(TypedRestObject):
@@ -378,9 +379,13 @@ class UserLimits(TypedRestObject):
     cancel_all: UserCancelAllLimit
     cancel_exemption: UserCancelExemption
     open_orders: UserOpenOrdersLimit
+    block_height: str
     block_timestamp: str
 
-    _aliases: ClassVar = {"block_timestamp": "block_timestamp"}
+    _aliases: ClassVar = {
+        "block_height": "block_height",
+        "block_timestamp": "block_timestamp",
+    }
     _nested: ClassVar = {
         "actionLimit": UserActionLimit,
         "cancelAll": UserCancelAllLimit,
@@ -439,10 +444,10 @@ class AccountDetail(TypedRestObject):
 
 
 class ExecutionStatus(TypedRestObject):
-    resting: TypedRestObject
-    filled: TypedRestObject
-    error: TypedRestObject
-    success_with_adjustment: TypedRestObject
+    resting: TypedRestObject | None
+    filled: TypedRestObject | None
+    error: TypedRestObject | None
+    success_with_adjustment: TypedRestObject | None
 
     _nested: ClassVar = {
         "resting": TypedRestObject,
@@ -450,32 +455,47 @@ class ExecutionStatus(TypedRestObject):
         "error": TypedRestObject,
         "successWithAdjustment": TypedRestObject,
     }
+    _optional_fields: ClassVar = frozenset(
+        {"resting", "filled", "error", "success_with_adjustment"}
+    )
 
 
 class TransactionData(TypedRestObject):
-    statuses: list[ExecutionStatus]
+    statuses: list[ExecutionStatus] | None
 
     _nested_lists: ClassVar = {"statuses": ExecutionStatus}
+    _optional_fields: ClassVar = frozenset({"statuses"})
 
 
 class TransactionResponse(TypedRestObject):
-    type: str
-    data: TransactionData
-    code: str
-    message: str
+    """Confirmed response union.
+
+    Successful receipts carry ``type``/``data`` while transaction-level
+    failures carry ``code``/``message``.  The backend may also return a
+    response variant whose data has fields not yet known to this SDK.
+    """
+
+    type: str | None
+    data: TransactionData | None
+    code: str | None
+    message: str | None
 
     _nested: ClassVar = {"data": TransactionData}
+    _optional_fields: ClassVar = frozenset({"type", "data", "code", "message"})
 
 
 class TransactionReceipt(TypedRestObject):
     tx_hash: str
-    block_height: str
-    block_hash: str
-    tx_index: str
-    status: str
-    response: TransactionResponse
+    block_height: str | None
+    block_hash: str | None
+    tx_index: str | None
+    status: str | None
+    response: TransactionResponse | None
 
     _nested: ClassVar = {"response": TransactionResponse}
+    _optional_fields: ClassVar = frozenset(
+        {"block_height", "block_hash", "tx_index", "status", "response"}
+    )
 
 
 class Order(TypedRestObject):
@@ -500,8 +520,11 @@ class Order(TypedRestObject):
     parent_order_id: str
     cancel_reason: str
     c_time: str
-    u_time: str
+    block_height: str
+    block_timestamp: str
     tx_hash: str
+
+    _aliases: ClassVar = {"block_height": "block_height", "block_timestamp": "block_timestamp"}
 
 
 class AttachedAlgoOrder(TypedRestObject):
@@ -525,11 +548,12 @@ class AttachedAlgoOrder(TypedRestObject):
 
 
 class PendingOrder(TypedRestObject):
+    """One currently pending Spot or Perp order."""
+
     oid: str
-    block_height: str
-    block_timestamp: str
     client_order_id: str
     asset_id: str
+    asset_status: str
     side: str
     position_side: str
     margin_mode: str
@@ -539,7 +563,6 @@ class PendingOrder(TypedRestObject):
     price: str
     size: str
     acc_fill_sz: str
-    avg_px: str
     state: str
     reduce_only: bool
     parent_order_id: str
@@ -551,15 +574,17 @@ class PendingOrder(TypedRestObject):
     tpsl: str
     tp_limit: bool
 
-    _aliases: ClassVar = {"block_height": "block_height", "block_timestamp": "block_timestamp"}
     _nested_lists: ClassVar = {"attachAlgoOrds": AttachedAlgoOrder}
 
 
 class PendingOrders(TypedRestObject):
-    next_cursor: str | None
-    has_more: bool
+    """The current pending-order snapshot and its chain metadata."""
+
+    block_height: str
+    block_timestamp: str
     data: list[PendingOrder]
 
+    _aliases: ClassVar = {"block_height": "block_height", "block_timestamp": "block_timestamp"}
     _nested_lists: ClassVar = {"data": PendingOrder}
 
 
@@ -586,8 +611,6 @@ class OrderHistory(TypedRestObject):
     tpsl: str
     tp_limit: bool
     cancel_reason: str
-    error_code: str
-    children: list[str]
     block_height: str
     block_timestamp: str
 
@@ -607,12 +630,24 @@ class Fill(TypedRestObject):
     fee_token_id: str
     rebate: str
     rebate_token_id: str
-    closed_pnl: str
+    pnl: str
     fill_dir: str
     start_position: str
+    block_height: str
     block_timestamp: str
 
-    _aliases: ClassVar = {"block_timestamp": "block_timestamp"}
+    _aliases: ClassVar = {
+        "block_height": "block_height",
+        "block_timestamp": "block_timestamp",
+    }
+
+
+class UserFill(Fill):
+    """One row from the WebSocket ``exchangeos-user-fills`` payload.
+
+    User-fill rows use the same current field vocabulary as REST fill
+    history, including ``pnl``, ``rebateTokenId``, and ``fillDir``.
+    """
 
 
 class OrderHistoryPage(TypedRestObject):
@@ -631,7 +666,20 @@ class FillsPage(TypedRestObject):
     _nested_lists: ClassVar = {"data": Fill}
 
 
+class CancelAllAfterResult(TypedRestObject):
+    """Successful ``cancel-all-after`` heartbeat response."""
+
+    server_timestamp: str
+    expires_after: str
+
+
 class WriteResult(TypedRestObject):
+    """Legacy generic write result retained for source compatibility.
+
+    ``cancel_all_after`` no longer uses this model; its response is the
+    dedicated :class:`CancelAllAfterResult` shape above.
+    """
+
     code: str
     msg: str
     tx_hash: str
@@ -670,7 +718,7 @@ REST_RESPONSE_MODELS: dict[str, type[TypedRestObject]] = {
     "/api/v5/exchangeos/trade/cancel-order": TransactionReceipt,
     "/api/v5/exchangeos/trade/noop": TransactionReceipt,
     "/api/v5/exchangeos/trade/modify-order": TransactionReceipt,
-    "/api/v5/exchangeos/trade/cancel-all-after": WriteResult,
+    "/api/v5/exchangeos/trade/cancel-all-after": CancelAllAfterResult,
     "/api/v5/exchangeos/account/account-transfer": TransactionReceipt,
     "/api/v5/exchangeos/account/create-sub-account": TransactionReceipt,
     "/api/v5/exchangeos/account/set-leverage": TransactionReceipt,

@@ -65,6 +65,16 @@ def test_market_inventory_contains_exactly_thirteen_public_routes() -> None:
     assert recorder.calls[12][3] == {"fundType": "securityFund", "assetId": 602}
 
 
+def test_public_market_routes_authenticate_when_credentials_are_configured() -> None:
+    recorder = Recorder()
+    recorder.credentials = object()
+    api = MarketAPI(recorder)  # type: ignore[arg-type]
+
+    api.token_info()
+
+    assert recorder.calls == [("GET", "/api/v5/exchangeos/market/token-info", True, {}, None)]
+
+
 def test_trade_inventory_contains_exactly_ten_authenticated_routes() -> None:
     recorder = Recorder()
     api = TradeAPI(recorder)  # type: ignore[arg-type]
@@ -80,9 +90,7 @@ def test_trade_inventory_contains_exactly_ten_authenticated_routes() -> None:
     api.cancel_all_after(cancel_all_tx)
     api.transaction("0xhash")
     api.order(client_order_id="cloid", vault_address="0xvault")
-    api.orders_pending(
-        point_board=True, asset_id=602, cursor="next-0", limit=25, vault_address="0xvault"
-    )
+    api.orders_pending(point_board=True, asset_id=602, vault_address="0xvault")
     api.orders_history(
         point_board=False,
         asset_id=602,
@@ -115,8 +123,6 @@ def test_trade_inventory_contains_exactly_ten_authenticated_routes() -> None:
     assert recorder.calls[7][3] == {
         "pointBoard": True,
         "assetId": 602,
-        "cursor": "next-0",
-        "limit": 25,
         "vaultAddress": "0xvault",
     }
     assert recorder.calls[8][3] == {

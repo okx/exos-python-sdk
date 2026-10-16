@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from ...exceptions import SigningError
-from ..client_order_id import validate_client_order_id
+from ..client_order_id import generate_client_order_id, validate_client_order_id
 from ..models import (
     ActionGrouping,
     MarginMode,
@@ -116,12 +116,11 @@ def order_item(
         "side": choice("side", wire_value(side).lower(), OrderSide),
     }
     item["marketType"] = market
-    if client_order_id is not None:
-        if not validate_client_order_id(client_order_id):
-            raise SigningError(
-                "client_order_id must be a 34-character 0x-prefixed hexadecimal value"
-            )
-        item["clientOrderId"] = client_order_id
+    if client_order_id is None:
+        client_order_id = generate_client_order_id()
+    if not validate_client_order_id(client_order_id):
+        raise SigningError("client_order_id must be a 34-character 0x-prefixed hexadecimal value")
+    item["clientOrderId"] = client_order_id
     item.update(
         price=string_value("price", price),
         reduceOnly=reduce_only,
