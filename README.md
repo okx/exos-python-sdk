@@ -9,7 +9,7 @@ asynchronous WebSocket subscriptions.
 
 #### Source code
 
-https://gitlab.okg.com/xlayer-dex/tradezone-python-sdk
+https://github.com/okx/exos-python-sdk
 
 #### API examples and tutorials
 
@@ -153,7 +153,7 @@ For contributors or local development:
 
 ```bash
 # Clone the repository
-git clone git@gitlab.okg.com:xlayer-dex/tradezone-python-sdk.git
+git clone https://github.com/okx/exos-python-sdk.git
 cd tradezone-python-sdk
 
 # Optional but recommended: create an isolated environment
