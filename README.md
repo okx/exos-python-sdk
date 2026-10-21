@@ -1,53 +1,108 @@
 # ExchangeOS Python SDK
 
-Python SDK for the ExchangeOS Spot and Perps APIs. It covers 38 synchronous
-REST routes, local MessagePack + EIP-712 transaction signing, and resilient
-asynchronous public/private WebSocket subscriptions.
+## Overview
 
-## Features
+This repository contains the Python SDK for the ExchangeOS Spot and
+Perps REST and WebSocket APIs. It provides synchronous REST resources, local
+MessagePack + EIP-712 transaction signing, typed response models, and resilient
+asynchronous WebSocket subscriptions.
 
-- `client.market`: 13 public Spot and Perps market-data methods.
-- `client.trade`: 5 signed writes and 5 authenticated order queries.
-- `client.account`: 6 signed writes and 9 authenticated account queries.
-- Local MessagePack and EIP-712 signing for supported transaction Actions.
-- 16 ExchangeOS public and 9 ExchangeOS private WebSocket channels.
-- Heartbeats, bounded queues, sequence-gap recovery, reconnect backoff, and subscription replay.
-- Decimal prices and quantities remain strings throughout the wire path.
-- Forward-compatible REST models preserve unknown fields and expose Decimal/UTC helpers.
-- Per-phase HTTP timeouts, proxy/User-Agent configuration, and safe lifecycle hooks.
-- One `Environment` binds the REST URL, WebSocket URL, and signing chain.
+#### Source code
 
-Python 3.10+ is required. CI verifies Python 3.10–3.13.
+https://gitlab.okg.com/xlayer-dex/tradezone-python-sdk
 
-The source tree is organized by capability: REST namespaces live under
-`api/`, action builders and EIP-712 internals under `signing/`, and
-channel definitions, message parsing, and transport state under `websocket/`.
-See the [architecture guide](docs/architecture.md) for the module map.
+#### API examples and tutorials
 
-## Install
+- REST market-data and account queries: [`examples/public_rest.ipynb`](examples/public_rest.ipynb)
+- Signed order flow: [`examples/place_order.ipynb`](examples/place_order.ipynb)
+- Order queries and cancellation: [`examples/order_queries.ipynb`](examples/order_queries.ipynb) and [`examples/cancel_order.ipynb`](examples/cancel_order.ipynb)
+- WebSocket subscriptions: [`examples/websocket_stream.ipynb`](examples/websocket_stream.ipynb)
+
+Keep the SDK and the ExchangeOS/TradeZone API documentation in sync when a
+deployment adds fields or endpoints. See the [changelog](CHANGELOG.md) for
+SDK-side compatibility notes.
+
+### Features
+
+- REST clients for market data, account queries, and signed trade/account actions.
+- Public and private WebSocket channels with heartbeats, reconnect, and subscription replay.
+- Local EIP-712 signing for supported actions.
+- Typed, forward-compatible responses that preserve exact decimal values and unknown fields.
+- Production and custom environments with configurable transport options.
+
+### Quick start
+
+#### Prerequisites
+
+`python version: >=3.10`
+
+#### Step 1: Obtain ExchangeOS credentials when a private operation needs them
+
+- Register for an account: [https://www.okx.com/account/register](https://www.okx.com/account/register)
+- Apply for an API key: [https://web3.okx.com/zh-hans/onchainos/dev-docs/exchangeos/quickstart](https://web3.okx.com/zh-hans/onchainos/dev-docs/exchangeos/quickstart)
+
+Public REST methods and public WebSocket channels can be used without
+credentials. Private REST/WebSocket operations require CEX API credentials:
+
+- API key
+- Secret key
+- Passphrase
+
+Signed writes additionally require an authorized Agent private key. The API
+credentials authenticate the request; the Agent private key signs the action.
+They are separate values and must not be interchanged.
+
+#### Step 2: Install `exchangeos-sdk`
+
+Install the published package:
 
 ```bash
 python -m pip install exchangeos-sdk
 ```
 
-For local development:
+For a source checkout, install the package in editable mode. Notebook support
+is an optional extra:
 
 ```bash
-python -m pip install -e '.[test]'
+python -m pip install -e '.[notebook]'
 ```
 
-## Quick start
+### API Credentials
+
+#### Option 1: Pass credentials directly
+
+Use `Credentials` when creating a client. Load the values from a secret
+provider or environment variables rather than putting real secrets in source
+control:
 
 ```python
-from exchangeos_sdk import ExchangeOSClient, RestMarketType
+from exchangeos_sdk import Credentials, ExchangeOSClient
 
-with ExchangeOSClient() as client:
-    instruments = client.market.instruments(market_type=RestMarketType.PERP)
-    print(instruments)
+# Replace these placeholders with credentials supplied by your secret provider.
+credentials = Credentials(
+    api_key="your-api-key",
+    secret_key="your-api-secret",
+    passphrase="your-passphrase",
+)
+
+with ExchangeOSClient(auth=credentials) as client:
+    balance = client.account.balance()
+    print(balance)
 ```
 
-Public market-data methods need no credentials. Private REST and WebSocket
-operations use API credentials:
+#### Option 2: Use environment variables (recommended)
+
+Create a local `.env` file or configure these variables in your shell. Never
+commit the file or print its contents:
+
+```bash
+EXCHANGEOS_API_KEY=your-api-key
+EXCHANGEOS_API_SECRET=your-api-secret
+EXCHANGEOS_API_PASSPHRASE=your-passphrase
+EXCHANGEOS_AGENT_PRIVATE_KEY=your-authorized-agent-private-key
+```
+
+Then read them from Python:
 
 ```python
 import os
@@ -59,143 +114,140 @@ credentials = Credentials(
     secret_key=os.environ["EXCHANGEOS_API_SECRET"],
     passphrase=os.environ["EXCHANGEOS_API_PASSPHRASE"],
 )
-client = ExchangeOSClient(auth=credentials)
+
+with ExchangeOSClient(auth=credentials) as client:
+    instruments = client.market.instruments()
+    positions = client.account.positions()
+    print({"instruments": len(instruments), "positions": len(positions)})
 ```
 
-### Which credentials do I need?
-
-| Task | Required credential | Notes |
-|---|---|---|
-| Public REST or public WebSocket | None | Start here to verify installation; configured REST credentials may still be sent for public REST calls. |
-| Private REST reads or private WebSocket | CEX API key, secret, and passphrase | Passed as `Credentials`. |
-| Local transaction signing | Authorized Agent private key | Passed only to `client.sign_action(...)`; no network request is made. |
-| Submit a signed transaction | CEX API credentials and a `SignedTransaction` | The submitting process need not hold the Agent private key. |
-
-The API credentials and Agent private key have separate purposes; do not
-interchange them. The SDK does not read or persist either value.
-
-### Which market-type enum should I use?
-
-Use `RestMarketType` for REST query arguments and `MarketType` only when
-constructing a signed Action:
+Public-only requests do not require `Credentials`:
 
 ```python
-from exchangeos_sdk import MarketType, RestMarketType
+from exchangeos_sdk import ExchangeOSClient, RestMarketType
 
-# REST query
-client.market.tickers(market_type=RestMarketType.PERP)
-
-# Signed Action field
-order = order_item(..., market_type=MarketType.SPOT)
+with ExchangeOSClient() as client:
+    instruments = client.market.instruments(market_type=RestMarketType.PERP)
+    tickers = client.market.tickers(market_type=RestMarketType.PERP)
+    print({"instruments": len(instruments), "tickers": len(tickers)})
 ```
 
-`MarketType.PREDICTION` exists only for legacy standalone signing compatibility;
-this SDK submits signed Spot and Perps actions only.
+#### Production environment
 
-`PRODUCTION` is the default deployment. A custom deployment must provide its
-REST URL, WebSocket URL, and signing chain together:
+The client connects to the Production ExchangeOS deployment by default:
 
 ```python
-from exchangeos_sdk import Chain, Environment, ExchangeOSClient
+from exchangeos_sdk import ExchangeOSClient
 
-test_environment = Environment.custom(
-    name="test",
-    rest_url="https://test.example.com",
-    websocket_url="wss://test.example.com/ws/v5/business",
-    signing_chain=Chain.TESTNET,
-)
-client = ExchangeOSClient(environment=test_environment)
+with ExchangeOSClient() as client:
+    print(client.market.instruments())
 ```
 
-Do not override those values independently: one `Environment` ensures REST,
-WebSocket, and local signing all target the same deployment. Its
-`signing_chain` selects the signing source (`Dev`, `Testnet`, or `Mainnet`)
-inside the EIP-712 message; the EIP-712 domain's protocol chain ID remains
-fixed. [Signing](docs/signing.md#protocol) explains the two
-values in detail. Applications should load credentials from a secret provider
-or environment variables.
+The SDK also supports custom deployments through `Environment.custom(...)`;
+those settings are intentionally not part of the quick-start example.
 
-REST `data` values use dict/list-compatible models that retain unknown fields
-and exact decimal strings. Signed writes accept locally generated EIP-712
-`SignedTransaction` objects and are never retried automatically. Use
-`client.sign_action(...)` to apply the chain selected by the same Environment.
-WebSocket sessions deliver raw JSON strings to callbacks and async iterators,
-and support public/private subscriptions, heartbeat, bounded queues,
-automatic reconnect, subscription replay, and order-book sequence-gap
-recovery.
+### Development Setup
 
-For complete runnable flows, including order signing, placement, cancellation,
-private queries, and WebSocket subscriptions, see the
-[examples guide](examples/README.md).
-
-## Errors
-
-All SDK failures derive from `ExchangeOSError`. Common subclasses include:
-
-- `ConfigurationError` and `ValidationError` for failures before network I/O.
-- `AuthenticationError`, `APIError`, and `RateLimitError` for server responses.
-- `TransportError` and `WebSocketProtocolError` for transport/protocol failures.
-- `SigningError` and `SequenceGapError` for signing and order-book integrity failures.
-
-`APIError` retains the server code, message, HTTP status, request ID, decoded
-data, and decoded response. Secret material is excluded from credential reprs
-and signing errors.
-
-## Documentation
-
-- [Architecture](docs/architecture.md)
-- [REST coverage](docs/rest-api.md)
-- [Signing](docs/signing.md)
-- [WebSocket](docs/websocket.md)
-- [Security guidance](docs/security.md)
-- [Protocol compatibility](docs/compatibility.md)
-- [Release notes](CHANGELOG.md)
-
-## Examples
-
-- [`examples/public_rest.ipynb`](examples/public_rest.ipynb): public Spot and Perps
-  instruments and tickers.
-- [`examples/account_queries.ipynb`](examples/account_queries.ipynb): authenticated
-  balance and position queries.
-- [`examples/sign_transaction.ipynb`](examples/sign_transaction.ipynb): local Perps
-  action construction and EIP-712 signing without a REST submission.
-- [`examples/place_order.ipynb`](examples/place_order.ipynb): signed Perps limit-order
-  submission using REST and EIP-712 authentication.
-- [`examples/order_queries.ipynb`](examples/order_queries.ipynb): pending orders,
-  order history, and fill queries.
-- [`examples/cancel_order.ipynb`](examples/cancel_order.ipynb): signed Spot or Perps
-  order cancellation by order ID or client order ID.
-- [`examples/websocket_stream.ipynb`](examples/websocket_stream.ipynb): raw JSON
-  ticker, order, and account subscriptions.
-
-See the [examples guide](examples/README.md) for prerequisites, environment
-variables, and the recommended execution order.
-
-Never commit `.env` files or print API secrets and Agent private keys.
-
-## Development
+For contributors or local development:
 
 ```bash
-python -m pytest --cov=exchangeos_sdk --cov-report=term-missing
-python -m ruff check src tests
-python -m ruff format --check src tests
-python -m mypy src
-python -m build
-python -m twine check dist/*
+# Clone the repository
+git clone git@gitlab.okg.com:xlayer-dex/tradezone-python-sdk.git
+cd tradezone-python-sdk
+
+# Optional but recommended: create an isolated environment
+python -m venv .venv
+source .venv/bin/activate
+
+# Install development dependencies
+python -m pip install --upgrade pip
+python -m pip install -e '.[test,notebook]'
+
+# Run the test suite
+python -m pytest
 ```
 
-The mocked test suite verifies every public REST endpoint without credentials
-or network access. To run the same coverage against the public beta API (also
-without credentials), use:
+The editable install includes the SDK, test dependencies, and notebook support.
+The virtual environment is optional, and the default tests use mocked
+transports without credentials or network access. Live REST checks are opt-in:
 
 ```bash
 EXCHANGEOS_RUN_LIVE_TESTS=1 python -m pytest tests/test_public_rest_endpoints.py -m live
 ```
 
-`EXCHANGEOS_TEST_BASE_URL` and `EXCHANGEOS_TEST_ASSET_ID` may optionally select
-another deployment or public asset. They are test inputs, not credentials.
+### Step 3: Run examples
 
-The test suite syntax-checks every Python block in this README and every code
-cell in the example notebooks without credentials or network access. CI installs
-both the wheel and source distribution into fresh virtual environments before
-publishing build artifacts.
+- Set the variables required by the example in the shell that launches VS Code
+  or Jupyter:
+
+```bash
+export EXCHANGEOS_API_KEY='...'
+export EXCHANGEOS_API_SECRET='...'
+export EXCHANGEOS_API_PASSPHRASE='...'
+export EXCHANGEOS_AGENT_PRIVATE_KEY='...'
+```
+
+- REST API
+  - Public market data: run [`examples/public_rest.ipynb`](examples/public_rest.ipynb).
+  - Account queries: run [`examples/account_queries.ipynb`](examples/account_queries.ipynb).
+  - Signed order placement: run [`examples/sign_transaction.ipynb`](examples/sign_transaction.ipynb) first, then [`examples/place_order.ipynb`](examples/place_order.ipynb).
+  - Order history, pending orders, fills, and cancellation: run [`examples/order_queries.ipynb`](examples/order_queries.ipynb) and [`examples/cancel_order.ipynb`](examples/cancel_order.ipynb).
+- WebSocket API
+  - Run [`examples/websocket_stream.ipynb`](examples/websocket_stream.ipynb) for a long-lived public stream.
+  - Add API credentials in the environment to subscribe to private channels.
+- Review the environment, asset, price, size, and order side before running a
+  signed write. The SDK signs locally, but the action is sent to ExchangeOS
+  only when the corresponding trade method is called.
+
+`order_item()` generates a valid API `clientOrderId` when it is omitted. Supply
+`client_order_id` only when an external system has already assigned the ID.
+
+```python
+import os
+
+from exchangeos_sdk import (
+    Credentials,
+    ExchangeOSClient,
+    MarginMode,
+    OrderSide,
+    OrderTimeInForce,
+    PlaceOrder,
+    limit_order_type,
+    order_item,
+    perp_market,
+)
+
+credentials = Credentials(
+    api_key=os.environ["EXCHANGEOS_API_KEY"],
+    secret_key=os.environ["EXCHANGEOS_API_SECRET"],
+    passphrase=os.environ["EXCHANGEOS_API_PASSPHRASE"],
+)
+order = order_item(
+    asset_id="your-asset-id",
+    side=OrderSide.BUY,
+    market_type=perp_market(MarginMode.CROSS),
+    price="your-order-price",
+    size="your-order-size",
+    order_type=limit_order_type(OrderTimeInForce.GTC),
+)
+action = PlaceOrder(orders=[order])
+
+with ExchangeOSClient(auth=credentials) as client:
+    signed_transaction = client.sign_action(
+        action,
+        os.environ["EXCHANGEOS_AGENT_PRIVATE_KEY"],
+    )
+    result = client.trade.place_order(signed_transaction)
+
+print({"clientOrderId": order["clientOrderId"], "response": result})
+```
+
+### Notes
+
+- To learn more about ExchangeOS API, visit the official [ExchangeOS API documentation](https://web3.okx.com/zh-hans/onchainos/dev-docs/open-api-conventions).
+- REST methods are synchronous. WebSocket sessions are asynchronous and run on Python `asyncio`; the SDK uses [`websockets`](https://websockets.readthedocs.io/en/stable/) internally.
+- Public REST endpoints and WebSocket channels do not require credentials. Private endpoints and channels use API credentials.
+- Signed writes are never retried automatically. Check the order or transaction state before retrying.
+- See the [REST](docs/rest-api.md), [WebSocket](docs/websocket.md), and [signing](docs/signing.md) guides for SDK-specific details.
+
+Never commit `.env` files, API secrets, passphrases, or Agent private keys.
