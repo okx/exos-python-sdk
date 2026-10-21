@@ -9,6 +9,7 @@ import random
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from contextlib import suppress
 from typing import Any, Literal, cast
+from urllib.parse import urlparse
 
 from ..auth import Credentials, websocket_login_args
 from ..exceptions import AuthenticationError, TransportError, WebSocketProtocolError
@@ -22,6 +23,7 @@ from .channels import (
 )
 
 DEFAULT_WS_URL = "wss://ws.okx.com/ws/v5/exchangeos"
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 OverflowPolicy = Literal["drop_oldest", "drop_newest", "raise"]
 EventHandler = Callable[[str, Mapping[str, Any]], Awaitable[None] | None]
@@ -55,7 +57,11 @@ class ExchangeOSWebSocket:
         event_handler: EventHandler | None = None,
         connector: Connector | None = None,
     ) -> None:
-        if not url.startswith(("wss://", "ws://localhost", "ws://127.0.0.1")):
+        parsed_url = urlparse(url)
+        if not (
+            parsed_url.scheme == "wss"
+            or (parsed_url.scheme == "ws" and parsed_url.hostname in _LOOPBACK_HOSTS)
+        ):
             raise ValueError("WebSocket URL must use WSS (WS is allowed only for loopback tests)")
         if ping_interval <= 0 or pong_timeout <= 0:
             raise ValueError("heartbeat intervals must be positive")

@@ -114,6 +114,8 @@ def test_estimated_price_requires_asset_id() -> None:
     ("kwargs", "match"),
     [
         ({"url": "http://example.test"}, "must use WSS"),
+        ({"url": "ws://localhost.example.com:9000"}, "must use WSS"),
+        ({"url": "ws://127.0.0.1.example.com:9000"}, "must use WSS"),
         ({"ping_interval": 0}, "heartbeat intervals"),
         ({"pong_timeout": 0}, "heartbeat intervals"),
         ({"reconnect_min": -1}, "reconnect interval"),
@@ -126,6 +128,11 @@ def test_estimated_price_requires_asset_id() -> None:
 def test_constructor_validation(kwargs: dict[str, Any], match: str) -> None:
     with pytest.raises(ValueError, match=match):
         ExchangeOSWebSocket(**kwargs)
+
+
+@pytest.mark.parametrize("url", ["ws://localhost:9000", "ws://127.0.0.1:9000", "ws://[::1]:9000"])
+def test_constructor_allows_only_exact_loopback_hosts(url: str) -> None:
+    ExchangeOSWebSocket(url=url)
 
 
 def test_candle_family_and_subscription_key_properties() -> None:
