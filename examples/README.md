@@ -9,12 +9,15 @@ kernel support into that same environment:
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install 'exchangeos-sdk[notebook]'
-python -m ipykernel install --user --name exchangeos-sdk --display-name 'ExchangeOS SDK'
+python -m pip install 'exos-python-sdk[notebook]'
+python -m ipykernel install --user --name exos-python-sdk --display-name 'ExOS Python SDK'
 ```
 
+The published distribution is named `exos-python-sdk`; notebook imports use the
+Python module name `exos_python_sdk`.
+
 When running from a source checkout instead, replace the package-install line
-with `python -m pip install -e '.[notebook]'`. Select the **ExchangeOS SDK**
+with `python -m pip install -e '.[notebook]'`. Select the **ExOS Python SDK**
 kernel (or the same `.venv` interpreter) in VS Code or Jupyter, then run cells
 in order. REST calls are synchronous; the WebSocket notebook uses async cells
 because a streaming connection remains asynchronous.

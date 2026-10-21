@@ -5,18 +5,18 @@ from typing import Any
 
 import pytest
 
-from exchangeos_sdk.auth import Credentials
-from exchangeos_sdk.exceptions import (
+from exos_python_sdk.auth import Credentials
+from exos_python_sdk.exceptions import (
     AuthenticationError,
     TransportError,
     WebSocketProtocolError,
 )
-from exchangeos_sdk.websocket import (
+from exos_python_sdk.websocket import (
     EXCHANGEOS_PRIVATE_CHANNELS,
     EXCHANGEOS_PUBLIC_CHANNELS,
     ExchangeOSWebSocket,
 )
-from exchangeos_sdk.websocket.messages import (
+from exos_python_sdk.websocket.messages import (
     ChannelDataMessage,
     ControlWebSocketMessage,
     RawWebSocketMessage,
@@ -203,7 +203,7 @@ async def test_estimated_price_subscription_uses_asset_id_wire_name() -> None:
 async def test_estimated_price_subscription_replays_after_reconnect(monkeypatch: Any) -> None:
     first, second = FakeSocket(), FakeSocket()
     connector = Connector([first, second])
-    monkeypatch.setattr("exchangeos_sdk.websocket.transport.random.uniform", lambda *_: 0)
+    monkeypatch.setattr("exos_python_sdk.websocket.transport.random.uniform", lambda *_: 0)
     ws = ExchangeOSWebSocket(
         connector=connector,
         ping_interval=60,
@@ -265,7 +265,7 @@ async def test_reconnect_replays_once_with_vault(monkeypatch: Any) -> None:
     second = FakeSocket([frame({"event": "login-wallet", "code": "0"})])
     connector = Connector([first, second])
     credentials = Credentials(api_key="key", secret_key="secret", passphrase="pass")
-    monkeypatch.setattr("exchangeos_sdk.websocket.transport.random.uniform", lambda *_: 0)
+    monkeypatch.setattr("exos_python_sdk.websocket.transport.random.uniform", lambda *_: 0)
     ws = ExchangeOSWebSocket(
         connector=connector,
         credentials=credentials,
@@ -288,7 +288,7 @@ async def test_reconnect_replays_once_with_vault(monkeypatch: Any) -> None:
 async def test_one_hundred_disconnects_replay_exactly_once(monkeypatch: Any) -> None:
     sockets = [FakeSocket() for _ in range(101)]
     connector = Connector(sockets)
-    monkeypatch.setattr("exchangeos_sdk.websocket.transport.random.uniform", lambda *_: 0)
+    monkeypatch.setattr("exos_python_sdk.websocket.transport.random.uniform", lambda *_: 0)
     ws = ExchangeOSWebSocket(
         connector=connector,
         ping_interval=60,
@@ -315,7 +315,7 @@ async def test_one_hundred_disconnects_replay_exactly_once(monkeypatch: Any) -> 
 async def test_retry_cap_resets_after_each_successful_reconnect(monkeypatch: Any) -> None:
     sockets = [FakeSocket(), FakeSocket(), FakeSocket()]
     connector = Connector(sockets)
-    monkeypatch.setattr("exchangeos_sdk.websocket.transport.random.uniform", lambda *_: 0)
+    monkeypatch.setattr("exos_python_sdk.websocket.transport.random.uniform", lambda *_: 0)
     ws = ExchangeOSWebSocket(
         connector=connector,
         ping_interval=60,
@@ -350,7 +350,7 @@ async def test_retry_cap_stops_consecutive_connection_failures(monkeypatch: Any)
         calls += 1
         return FakeConnection(socket) if calls == 1 else FailingConnection()
 
-    monkeypatch.setattr("exchangeos_sdk.websocket.transport.random.uniform", lambda *_: 0)
+    monkeypatch.setattr("exos_python_sdk.websocket.transport.random.uniform", lambda *_: 0)
     ws = ExchangeOSWebSocket(
         connector=connector,
         ping_interval=60,
@@ -373,7 +373,7 @@ async def test_heartbeat_timeout_causes_reconnect(monkeypatch: Any) -> None:
 
     first, second = SilentSocket(), FakeSocket()
     connector = Connector([first, second])
-    monkeypatch.setattr("exchangeos_sdk.websocket.transport.random.uniform", lambda *_: 0)
+    monkeypatch.setattr("exos_python_sdk.websocket.transport.random.uniform", lambda *_: 0)
     ws = ExchangeOSWebSocket(
         connector=connector,
         ping_interval=0.001,
@@ -690,7 +690,7 @@ async def test_lifecycle_hooks_include_subscribed_and_reconnected(monkeypatch: A
     def handler(event: str, details: Any) -> None:
         events.append((event, dict(details)))
 
-    monkeypatch.setattr("exchangeos_sdk.websocket.transport.random.uniform", lambda *_: 0)
+    monkeypatch.setattr("exos_python_sdk.websocket.transport.random.uniform", lambda *_: 0)
     ws = ExchangeOSWebSocket(
         connector=connector,
         event_handler=handler,

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import httpx
 
-from exchangeos_sdk import (
+from exos_python_sdk import (
     AccountBalance,
     AccountPositionTier,
     BearerAuth,
@@ -31,8 +31,8 @@ from exchangeos_sdk import (
     TransactionReceipt,
     UserLimits,
 )
-from exchangeos_sdk.websocket.messages import ChannelDataMessage, parse_message
-from exchangeos_sdk.websocket.payloads import (
+from exos_python_sdk.websocket.messages import ChannelDataMessage, parse_message
+from exos_python_sdk.websocket.payloads import (
     BalanceAndPosition,
     EstimatedPrice,
     FundingsPayload,

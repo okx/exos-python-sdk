@@ -14,7 +14,7 @@ have independent lifecycles.
 ## Package layout
 
 ```text
-exchangeos_sdk/
+exos_python_sdk/
 ├── client.py                 # REST transport and API composition
 ├── environment.py            # REST URL, WebSocket URL, and signing chain
 ├── config.py                 # Client options, retry, auth mode, and observability

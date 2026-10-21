@@ -4,10 +4,10 @@ import msgpack
 import pytest
 from eth_utils import keccak
 
-import exchangeos_sdk.signing.client_order_id as client_order_id_module
-import exchangeos_sdk.signing.protocol as signing_module
-from exchangeos_sdk.exceptions import SigningError
-from exchangeos_sdk.signing import (
+import exos_python_sdk.signing.client_order_id as client_order_id_module
+import exos_python_sdk.signing.protocol as signing_module
+from exos_python_sdk.exceptions import SigningError
+from exos_python_sdk.signing import (
     ActionGrouping,
     Cancel,
     CancelAll,
@@ -63,7 +63,7 @@ from exchangeos_sdk.signing import (
     update_position_mode_action,
     validate_client_order_id,
 )
-from exchangeos_sdk.signing.actions.action import build_action
+from exos_python_sdk.signing.actions.action import build_action
 
 
 def test_common_action_builder_preserves_type_first_and_validates_payload() -> None:

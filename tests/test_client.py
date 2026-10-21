@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from exchangeos_sdk import (
+from exos_python_sdk import (
     APIError,
     BearerAuth,
     Chain,
@@ -14,8 +14,8 @@ from exchangeos_sdk import (
     RestMarketType,
     RetryPolicy,
 )
-from exchangeos_sdk.auth import sign_request
-from exchangeos_sdk.exceptions import (
+from exos_python_sdk.auth import sign_request
+from exos_python_sdk.exceptions import (
     AuthenticationError,
     ConfigurationError,
     RateLimitError,
@@ -270,7 +270,7 @@ def test_environment_supplies_rest_websocket_and_signing_chain(monkeypatch) -> N
         captured.update(action=action, private_key=private_key, **kwargs)
         return sentinel
 
-    monkeypatch.setattr("exchangeos_sdk.client.sign_transaction_action", fake_sign)
+    monkeypatch.setattr("exos_python_sdk.client.sign_transaction_action", fake_sign)
     client = ExchangeOSClient(environment=TEST_ENVIRONMENT)
     assert client.base_url == "http://localhost"
     assert client.websocket().url == "ws://localhost/ws"
@@ -359,7 +359,7 @@ def test_read_retry_exhaustion_retains_safe_context(monkeypatch) -> None:
     def fake_sleep(delay: float) -> None:
         sleeps.append(delay)
 
-    monkeypatch.setattr("exchangeos_sdk.client.time.sleep", fake_sleep)
+    monkeypatch.setattr("exos_python_sdk.client.time.sleep", fake_sleep)
     client, http = make_client(
         handler, options=ClientOptions(retry=RetryPolicy(max_retries=2, backoff=0.5))
     )
@@ -391,7 +391,7 @@ def test_429_invalid_retry_after_uses_backoff_then_succeeds(monkeypatch) -> None
     def fake_sleep(delay: float) -> None:
         sleeps.append(delay)
 
-    monkeypatch.setattr("exchangeos_sdk.client.time.sleep", fake_sleep)
+    monkeypatch.setattr("exos_python_sdk.client.time.sleep", fake_sleep)
     client, http = make_client(
         handler, options=ClientOptions(retry=RetryPolicy(max_retries=1, backoff=0.25))
     )

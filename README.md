@@ -53,12 +53,12 @@ Signed writes additionally require an authorized Agent private key. The API
 credentials authenticate the request; the Agent private key signs the action.
 They are separate values and must not be interchanged.
 
-#### Step 2: Install `exchangeos-sdk`
+#### Step 2: Install `exos-python-sdk`
 
 Install the published package:
 
 ```bash
-python -m pip install exchangeos-sdk
+python -m pip install exos-python-sdk
 ```
 
 For a source checkout, install the package in editable mode. Notebook support
@@ -77,7 +77,7 @@ provider or environment variables rather than putting real secrets in source
 control:
 
 ```python
-from exchangeos_sdk import Credentials, ExchangeOSClient
+from exos_python_sdk import Credentials, ExchangeOSClient
 
 # Replace these placeholders with credentials supplied by your secret provider.
 credentials = Credentials(
@@ -108,7 +108,7 @@ Then read them from Python:
 ```python
 import os
 
-from exchangeos_sdk import Credentials, ExchangeOSClient
+from exos_python_sdk import Credentials, ExchangeOSClient
 
 credentials = Credentials(
     api_key=os.environ["EXCHANGEOS_API_KEY"],
@@ -125,7 +125,7 @@ with ExchangeOSClient(auth=credentials) as client:
 Public-only requests do not require `Credentials`:
 
 ```python
-from exchangeos_sdk import ExchangeOSClient, RestMarketType
+from exos_python_sdk import ExchangeOSClient, RestMarketType
 
 with ExchangeOSClient() as client:
     instruments = client.market.instruments(market_type=RestMarketType.PERP)
@@ -138,7 +138,7 @@ with ExchangeOSClient() as client:
 The client connects to the Production ExchangeOS deployment by default:
 
 ```python
-from exchangeos_sdk import ExchangeOSClient
+from exos_python_sdk import ExchangeOSClient
 
 with ExchangeOSClient() as client:
     print(client.market.instruments())
@@ -154,7 +154,7 @@ For contributors or local development:
 ```bash
 # Clone the repository
 git clone https://github.com/okx/exos-python-sdk.git
-cd tradezone-python-sdk
+cd exos-python-sdk
 
 # Optional but recommended: create an isolated environment
 python -m venv .venv
@@ -206,7 +206,7 @@ export EXCHANGEOS_AGENT_PRIVATE_KEY='...'
 ```python
 import os
 
-from exchangeos_sdk import (
+from exos_python_sdk import (
     Credentials,
     ExchangeOSClient,
     MarginMode,

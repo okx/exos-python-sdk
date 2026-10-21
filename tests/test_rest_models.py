@@ -4,7 +4,7 @@ from decimal import Decimal
 import httpx
 import pytest
 
-from exchangeos_sdk import (
+from exos_python_sdk import (
     Chain,
     ClientOptions,
     Environment,
@@ -15,8 +15,8 @@ from exchangeos_sdk import (
     RetryPolicy,
     Ticker,
 )
-from exchangeos_sdk.exceptions import ConfigurationError, TransportError, ValidationError
-from exchangeos_sdk.models import (
+from exos_python_sdk.exceptions import ConfigurationError, TransportError, ValidationError
+from exos_python_sdk.models import (
     FillDir,
     FillDirection,
     MarketType,
@@ -248,7 +248,7 @@ def test_metadata_logging_never_contains_query_values_or_response_payload(caplog
         return httpx.Response(200, json={"code": "0", "data": {"marker": "response-marker"}})
 
     client, http = make_client(handler, options=ClientOptions(logging_policy=LoggingPolicy.DEBUG))
-    with caplog.at_level("DEBUG", logger="exchangeos_sdk.rest"):
+    with caplog.at_level("DEBUG", logger="exos_python_sdk.rest"):
         client.market.tickers(asset_id="query-marker")
     rendered = caplog.text
     assert "request_start" in rendered

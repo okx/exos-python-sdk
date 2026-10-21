@@ -11,7 +11,7 @@ are mutually exclusive. Calling a private method without either one raises
 `AuthenticationError` before network I/O.
 
 ```python
-from exchangeos_sdk import BearerAuth, Credentials, ExchangeOSClient
+from exos_python_sdk import BearerAuth, Credentials, ExchangeOSClient
 
 credentials = Credentials(api_key="...", secret_key="...", passphrase="...")
 client = ExchangeOSClient(auth=credentials)
@@ -77,7 +77,7 @@ if page.has_more:
 ```
 
 ```python
-from exchangeos_sdk import ClientOptions, ExchangeOSClient
+from exos_python_sdk import ClientOptions, ExchangeOSClient
 
 with ExchangeOSClient(
     options=ClientOptions(preserve_raw_response=True)
@@ -154,7 +154,7 @@ All SDK exceptions inherit from `ExchangeOSError`. Catch the most specific
 error first:
 
 ```python
-from exchangeos_sdk import (
+from exos_python_sdk import (
     APIError,
     AuthenticationError,
     RateLimitError,
@@ -205,7 +205,7 @@ on its own.
 ```python
 import os
 
-from exchangeos_sdk import Chain, Environment, ExchangeOSClient
+from exos_python_sdk import Chain, Environment, ExchangeOSClient
 
 environment = Environment.custom(
     name="custom",
@@ -235,7 +235,7 @@ own timeout and proxy; combining those settings is rejected rather than ignored.
 ```python
 import httpx
 
-from exchangeos_sdk import ClientOptions, ExchangeOSClient
+from exos_python_sdk import ClientOptions, ExchangeOSClient
 
 client = ExchangeOSClient(
     options=ClientOptions(
@@ -260,7 +260,7 @@ enabled policies log only the same redacted metadata; debug mode never logs
 payloads or authentication headers.
 
 ```python
-from exchangeos_sdk import ClientOptions, ExchangeOSClient, RestEvent
+from exos_python_sdk import ClientOptions, ExchangeOSClient, RestEvent
 
 
 def observe(event: RestEvent) -> None:

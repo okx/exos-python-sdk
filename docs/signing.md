@@ -38,7 +38,7 @@ Each supported signed action is an immutable dataclass with an explicit Python
 constructor. Typed actions can be passed directly to `sign_action()`:
 
 ```python
-from exchangeos_sdk import PositionMode, UpdatePositionMode, sign_action
+from exos_python_sdk import PositionMode, UpdatePositionMode, sign_action
 
 action = UpdatePositionMode(mode=PositionMode.HEDGE)
 signed = sign_action(action, private_key, nonce=1_700_000_000_000)
@@ -115,9 +115,9 @@ define the closed signing protocol.
 
 The two market-type enums intentionally have different scope:
 
-- `exchangeos_sdk.RestMarketType` is for REST queries and contains only
+- `exos_python_sdk.RestMarketType` is for REST queries and contains only
   `SPOT` and `PERP`.
-- `exchangeos_sdk.MarketType` is the closed signing enum and retains
+- `exos_python_sdk.MarketType` is the closed signing enum and retains
   `PREDICTION` for protocol compatibility in addition to `SPOT` and `PERP`.
 
 When `nonce` is omitted, the SDK allocates a process-local monotonically

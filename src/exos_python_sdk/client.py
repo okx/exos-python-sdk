@@ -38,7 +38,7 @@ from .signing.protocol import sign_action as sign_transaction_action
 if TYPE_CHECKING:
     from .websocket import ExchangeOSWebSocket
 
-_LOGGER = logging.getLogger("exchangeos_sdk.rest")
+_LOGGER = logging.getLogger("exos_python_sdk.rest")
 
 
 def _safe_proxy_url(value: str) -> bool:

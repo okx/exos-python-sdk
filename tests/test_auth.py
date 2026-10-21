@@ -4,8 +4,8 @@ import hmac
 
 import pytest
 
-from exchangeos_sdk.auth import Credentials, auth_headers, sign_request
-from exchangeos_sdk.exceptions import ConfigurationError
+from exos_python_sdk.auth import Credentials, auth_headers, sign_request
+from exos_python_sdk.exceptions import ConfigurationError
 
 
 def test_request_signature_matches_protocol_formula() -> None:

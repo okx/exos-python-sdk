@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import exchangeos_sdk as sdk
+import exos_python_sdk as sdk
 
 
 def test_public_api_exports_primary_client_and_transports() -> None:
@@ -90,7 +90,7 @@ def test_action_variants_follow_rust_tagged_union_layout() -> None:
     )
     assert sdk.Action.types()[: len(rust_variants)] == rust_variants
     assert all(
-        variant.__module__ == "exchangeos_sdk.signing.actions.action"
+        variant.__module__ == "exos_python_sdk.signing.actions.action"
         for variant in (
             sdk.PredictionSplit,
             sdk.PredictionMerge,

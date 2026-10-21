@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from exchangeos_sdk.api import (
+from exos_python_sdk.api import (
     ACCOUNT_ENDPOINTS,
     MARKET_ENDPOINTS,
     TRADE_ENDPOINTS,
@@ -10,7 +10,7 @@ from exchangeos_sdk.api import (
     MarketAPI,
     TradeAPI,
 )
-from exchangeos_sdk.exceptions import ValidationError
+from exos_python_sdk.exceptions import ValidationError
 
 
 class Recorder:

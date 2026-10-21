@@ -22,7 +22,7 @@ from typing import Any
 import pytest
 from eth_keys import keys  # type: ignore[attr-defined]
 
-from exchangeos_sdk import (
+from exos_python_sdk import (
     Action,
     Cancel,
     CancelAll,

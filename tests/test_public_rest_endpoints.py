@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 import pytest
 
-from exchangeos_sdk import (
+from exos_python_sdk import (
     Chain,
     Environment,
     ExchangeOSClient,
@@ -16,7 +16,7 @@ from exchangeos_sdk import (
     RestMarketType,
     SecurityFundType,
 )
-from exchangeos_sdk.api import MARKET_ENDPOINTS
+from exos_python_sdk.api import MARKET_ENDPOINTS
 
 
 @dataclass(frozen=True)
