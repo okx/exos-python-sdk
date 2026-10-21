@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "exchangeos-sdk"
-version = "0.3.0"
+version = "1.0.0"
 description = "Python SDK for synchronous exchangeOS REST, EIP-712 signing, and WebSocket APIs"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,7 +38,7 @@ test = [
 packages = ["src/exchangeos_sdk"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["/.claude", "/.gitlab-ci.yml", "/security-audit-*.md", "/tests"]
+exclude = ["/.claude", "/security-audit-*.md", "/tests"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

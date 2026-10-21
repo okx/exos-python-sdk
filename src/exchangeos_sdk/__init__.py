@@ -309,4 +309,4 @@ __all__ = [
     "validate_client_order_id",
 ]
 
-__version__ = "0.3.0"
+__version__ = "1.0.0"

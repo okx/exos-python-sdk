@@ -168,7 +168,7 @@ class ExchangeOSWebSocket:
         self._validate_channel(channel, private=True)
         if not self.credentials:
             raise AuthenticationError(
-                "ExchangeOS private WebSocket channels require CEX API credentials"
+                "ExchangeOS private WebSocket channels require API credentials"
             )
         if not self._authenticated.is_set():
             raise AuthenticationError("private subscriptions require a completed WebSocket login")
@@ -184,7 +184,7 @@ class ExchangeOSWebSocket:
         if matches_channel(channel, PRIVATE_CHANNELS):
             if not self.credentials:
                 raise AuthenticationError(
-                    "ExchangeOS private WebSocket channels require CEX API credentials"
+                    "ExchangeOS private WebSocket channels require API credentials"
                 )
             if not self._authenticated.is_set():
                 raise AuthenticationError(
@@ -312,7 +312,7 @@ class ExchangeOSWebSocket:
             except ImportError as exc:
                 raise TransportError("install the SDK with its WebSocket dependency") from exc
             connector = connect
-        headers = {"User-Agent": "EXCHANGEOS_PYTHON_SDK_0.3.0"}
+        headers = {"User-Agent": "EXCHANGEOS_PYTHON_SDK_1.0.0"}
         if self.bearer_token:
             headers["Authorization"] = f"Bearer {self.bearer_token}"
         async with connector(
@@ -359,7 +359,7 @@ class ExchangeOSWebSocket:
     async def _login(self, ws: Any) -> None:
         if self.credentials is None:
             raise AuthenticationError(
-                "ExchangeOS private WebSocket channels require CEX API credentials"
+                "ExchangeOS private WebSocket channels require API credentials"
             )
         login_args: dict[str, Any] = dict(websocket_login_args(self.credentials))
         operation = "login-wallet"

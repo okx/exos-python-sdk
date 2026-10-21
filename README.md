@@ -42,7 +42,8 @@ SDK-side compatibility notes.
 - Apply for an API key: [https://web3.okx.com/zh-hans/onchainos/dev-docs/exchangeos/quickstart](https://web3.okx.com/zh-hans/onchainos/dev-docs/exchangeos/quickstart)
 
 Public REST methods and public WebSocket channels can be used without
-credentials. Private REST/WebSocket operations require CEX API credentials:
+credentials. Private REST operations use API credentials or a bearer token;
+private WebSocket channels use API credentials:
 
 - API key
 - Secret key

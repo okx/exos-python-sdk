@@ -1,6 +1,6 @@
 # ExchangeOS SDK notebooks
 
-The SDK requires Python 3.10+. CI verifies Python 3.10–3.13.
+The SDK requires Python 3.10+.
 
 Create and activate a virtual environment, then install the SDK and notebook
 kernel support into that same environment:
@@ -34,13 +34,13 @@ that launches VS Code or Jupyter:
 export EXCHANGEOS_API_KEY='...'
 export EXCHANGEOS_API_SECRET='...'
 export EXCHANGEOS_API_PASSPHRASE='...'
-export EXCHANGEOS_ASSET_ID='...'
 # Required only by the two signed-write notebooks:
 export EXCHANGEOS_AGENT_PRIVATE_KEY='...'
 ```
 
-`EXCHANGEOS_VAULT_ADDRESS`, order identifiers, price, size, and market type are
-not global requirements; each notebook lists the additional inputs it needs.
+`EXCHANGEOS_ASSET_ID`, `EXCHANGEOS_VAULT_ADDRESS`, order identifiers, price,
+size, and market type are not global requirements; each notebook lists the
+additional inputs it needs.
 
 ## Suggested flow
 
@@ -58,8 +58,9 @@ Run the examples from the repository root in this order:
 
 Every notebook lists its required environment variables before executable
 cells. Public REST and public WebSocket streams need no credentials. Private
-REST and private WebSocket operations use API credentials, while signed writes
-additionally require an authorized Agent private key.
+REST calls use API credentials or a bearer token; private WebSocket operations
+use API credentials. Signed writes additionally require an authorized Agent
+private key.
 
 The place-order and sign-transaction examples omit `client_order_id` on
 `order_item()` deliberately: the helper generates a valid API client order ID

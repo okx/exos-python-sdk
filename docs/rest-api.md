@@ -2,7 +2,8 @@
 
 All methods are synchronous. Public methods work without credentials; when
 credentials or a bearer token are configured, public REST methods authenticate
-the request as well. Private reads use OKX V5 request authentication, while
+the request as well. Private reads use the configured API credentials or bearer
+token, while
 private writes accept an EIP-712 signed transaction envelope.
 
 Create the client with either API credentials or a bearer token. The two modes
@@ -98,6 +99,27 @@ Public Python methods use `snake_case`. The SDK serializes them to the OpenAPI
 wire names below; callers should pass the Python name, not manually construct
 the camelCase form.
 
+In the endpoint tables below:
+
+- **Required** means the Python method cannot be called without that value.
+- **Optional** means `None` is omitted from the request.
+- **Conditional** means the method accepts the value optionally, but the
+  ExchangeOS backend applies a rule based on another parameter or the account.
+- **Exactly one** means the backend requires one of the listed identifiers.
+
+`Wire name` is the exact query-string or JSON field name sent to ExchangeOS. It
+is not a second argument name that callers need to provide. For example:
+
+```python
+client.market.order_book(asset_id="2", depth=20)
+```
+
+sends query parameters equivalent to `assetId=2&depth=20`. The same naming
+direction applies to signed action JSON (`client_order_id` becomes
+`clientOrderId`). For responses, mapping keys keep their wire spelling while
+typed attributes use `snake_case`, so `ticker["lastPx"]` and
+`ticker.last_px` refer to the same value.
+
 | Python parameter | Wire name |
 |---|---|
 | `market_type` | `marketType` |
@@ -181,16 +203,21 @@ set all three values together; do not override an endpoint or signing source
 on its own.
 
 ```python
+import os
+
 from exchangeos_sdk import Chain, Environment, ExchangeOSClient
 
 environment = Environment.custom(
-    name="test",
-    rest_url="https://test.example.com",
-    websocket_url="wss://test.example.com/ws/v5/business",
+    name="custom",
+    rest_url=os.environ["EXCHANGEOS_REST_URL"],
+    websocket_url=os.environ["EXCHANGEOS_WS_URL"],
     signing_chain=Chain.TESTNET,
 )
 client = ExchangeOSClient(environment=environment)
 ```
+
+Set the URL environment variables to the endpoints supplied by your deployment.
+Change `signing_chain` to match that deployment.
 
 `signing_chain` selects the EIP-712 `Agent.source` value. It is intentionally
 chosen by the Environment and cannot be separately overridden in
@@ -265,6 +292,31 @@ client = ExchangeOSClient(
 | GET | `/api/v5/exchangeos/market/index-tickers` | `index_tickers()` |
 | GET | `/api/v5/exchangeos/market/security-fund` | `security_fund()` |
 
+### Market parameters
+
+All Market methods are public. The required and optional parameters exposed by
+the SDK are:
+
+| Python method | Required | Optional / conditional | Wire names |
+|---|---|---|---|
+| `token_info()` | — | — | — |
+| `instruments()` | — | `market_type`, `asset_id` | `marketType`, `assetId` |
+| `tickers()` | — | `market_type`, `asset_id` | `marketType`, `assetId` |
+| `order_book(asset_id)` | `asset_id` | `depth` | `assetId`, `depth` |
+| `candles(asset_id)` | `asset_id` | `bar`, `limit`, `begin`, `end` | `assetId`, `bar`, `limit`, `begin`, `end` |
+| `mark_prices()` | — | `asset_id` | `assetId` |
+| `position_tiers(asset_id)` | `asset_id` | — | `assetId` |
+| `funding_rate_history(asset_id)` | `asset_id` | `begin`, `end`, `limit`, `cursor` | `assetId`, `begin`, `end`, `limit`, `cursor` |
+| `funding_rate()` | — | `asset_id` | `assetId` |
+| `open_interest()` | — | `asset_id` | `assetId` |
+| `price_limit(asset_id)` | `asset_id` | — | `assetId` |
+| `index_tickers()` | — | `asset_id` | `assetId` |
+| `security_fund(fund_type)` | `fund_type` | `asset_id` is conditional | `fundType`, `assetId` |
+
+`security_fund()` requires `asset_id` for `SECURITY_FUND` and requires it to be
+omitted for `SECURITY_VAULT` and `SUPPLEMENTARY_FUND`; the backend remains the
+source of truth for that conditional rule.
+
 `token_info()` exposes the optional `wei_decimals` precision field as an
 integer; it remains `None` when the backend has no precision value.
 
@@ -306,6 +358,31 @@ accepts an opaque `cursor` and a page size from 1 through 100.
 | GET | `/api/v5/exchangeos/trade/orders-history` | `orders_history()` |
 | GET | `/api/v5/exchangeos/trade/fills` | `fills()` |
 
+### Trade parameters
+
+Signed trade writes take one required `signed_transaction` body. The
+action-specific fields are documented in [Signing](signing.md); they are not
+passed as separate REST method arguments.
+
+| Python method | Required | Optional / conditional | Wire names |
+|---|---|---|---|
+| `place_order(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `cancel_order(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `noop(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `modify_order(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `cancel_all_after(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `transaction(tx_hash)` | `tx_hash` | — | `txHash` |
+| `order()` | exactly one of `oid` / `client_order_id` | `vault_address` | `oid`, `clientOrderId`, `vaultAddress` |
+| `orders_pending()` | — | `point_board`, `asset_id`, `vault_address` | `pointBoard`, `assetId`, `vaultAddress` |
+| `orders_history()` | — | `point_board`, `asset_id`, `state`, `begin`, `end`, `cursor`, `limit`, `vault_address` | `pointBoard`, `assetId`, `state`, `begin`, `end`, `cursor`, `limit`, `vaultAddress` |
+| `fills()` | — | `point_board`, `asset_id`, `begin`, `end`, `cursor`, `limit`, `vault_address` | `pointBoard`, `assetId`, `begin`, `end`, `cursor`, `limit`, `vaultAddress` |
+
+The `order()` method accepts both identifiers in its Python signature so the
+request can be built flexibly, but ExchangeOS requires exactly one of them.
+`cancel_all_after()` has no separate `expires_after` argument: put
+`nonce`, `expiresAfter`, and the `cancelAll` action in the signed transaction
+as described in [Signing](signing.md).
+
 Signed write methods accept either a `SignedTransaction` or a mapping in its
 wire shape. OpenAPI defaults omitted write `mode` to synchronous receipt mode,
 which is the SDK contract. `orders_pending()` is also available as
@@ -332,8 +409,8 @@ server, keeping the SDK compatible with future API changes.
 Pending orders accept `point_board`, `asset_id`, and `vault_address`.
 Order history and fills additionally accept `cursor` and `limit`.
 The pending-order response places `block_height` and `block_timestamp` on the
-page wrapper and adds `assetStatus` to each order. Pending orders do not expose
-`avgPx`.
+page wrapper and includes `assetStatus` and `leverage` on each order. Pending
+orders do not expose `avgPx`.
 Typed REST fill rows expose realized PnL as `pnl`, include `block_height`, and
 use the PascalCase `fillDir` vocabulary shared with the WebSocket stream.
 History and fills use the exclusive time bounds `begin` and `end`; legacy
@@ -371,6 +448,29 @@ for fill in fills_page.data:
 | GET | `/api/v5/exchangeos/account/limits` | `limits()` |
 | GET | `/api/v5/exchangeos/account/bills` | `bills()` |
 | GET | `/api/v5/exchangeos/account/detail` | `detail()` |
+
+### Account parameters
+
+Account writes use a required signed transaction body. Account reads use the
+following query parameters:
+
+| Python method | Required | Optional / conditional | Wire names |
+|---|---|---|---|
+| `account_transfer(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `create_sub_account(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `set_leverage(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `set_margin_mode(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `set_position_mode(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `adjust_isolated_margin(signed_transaction)` | `signed_transaction` | — | JSON body |
+| `balance()` | — | `vault_address`, `point_board` | `vaultAddress`, `pointBoard` |
+| `positions()` | — | `asset_id`, `vault_address`, `point_board` | `assetId`, `vaultAddress`, `pointBoard` |
+| `max_size(asset_id)` | `asset_id` | `price`, `leverage`, `reduce_only`, `vault_address` | `assetId`, `price`, `leverage`, `reduceOnly`, `vaultAddress` |
+| `position_tiers(asset_id)` | `asset_id` | `vault_address` | `assetId`, `vaultAddress` |
+| `leverage_info(asset_id)` | `asset_id` | `position_side`, `vault_address` | `assetId`, `positionSide`, `vaultAddress` |
+| `trade_fee(asset_id)` | `asset_id` | — | `assetId` |
+| `limits()` | — | `vault_address` | `vaultAddress` |
+| `bills()` | — | `token_id`, `asset_id`, `flow_category`, `bill_type`, `begin`, `end`, `cursor`, `limit`, `vault_address`, `point_board` | `tokenId`, `assetId`, `flowCategory`, `billType`, `begin`, `end`, `cursor`, `limit`, `vaultAddress`, `pointBoard` |
+| `detail()` | — | — | — |
 
 `vault_address` is accepted only by documented subaccount-aware reads. Account
 `detail()` and `trade_fee()` always use the authenticated parent account.

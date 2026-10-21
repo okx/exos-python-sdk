@@ -22,7 +22,7 @@ async with client.websocket(
         print(raw_json)
 ```
 
-ExchangeOS DEX private channels with CEX API credentials use the
+ExchangeOS DEX private channels with API credentials use the
 `login-wallet` protocol automatically:
 
 ```python
@@ -141,8 +141,8 @@ the subscription key, so parent and subaccount subscriptions remain distinct
 and survive reconnects.
 
 API-key credentials use the ExchangeOS `login-wallet` operation automatically.
-Private ExchangeOS channels therefore require CEX API credentials; Web3 API
-keys are not accepted by this client. A bearer token is instead authenticated by the HTTP WebSocket
+Private ExchangeOS channels therefore require API credentials; Web3 API keys
+are not accepted by this client. A bearer token is instead authenticated by the HTTP WebSocket
 upgrade on every connection; the SDK does not invent a second application-level
 login operation for that mode. `authentication_mode` reports
 `api-key-login`, `bearer-upgrade`, or `none`.

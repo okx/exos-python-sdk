@@ -581,7 +581,7 @@ async def test_bearer_auth_cannot_subscribe_private_channels() -> None:
     await ws.connect()
     assert ws.authenticated
     assert ws.authentication_mode == "bearer-upgrade"
-    with pytest.raises(AuthenticationError, match="CEX API credentials"):
+    with pytest.raises(AuthenticationError, match="API credentials"):
         await ws.subscribe_private("exchangeos-account")
     assert connector.kwargs[0]["additional_headers"]["Authorization"].startswith("Bearer ")
     await ws.close()
