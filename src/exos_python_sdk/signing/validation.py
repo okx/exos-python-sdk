@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Collection, Mapping, Sequence
 from enum import Enum
 from typing import Any
@@ -9,6 +10,7 @@ from typing import Any
 from ..exceptions import SigningError
 
 UINT64_MAX = 2**64 - 1
+_CHAIN_ID_PATTERN = re.compile(r"(?:0[xX][0-9a-fA-F]+|[0-9]+)")
 
 
 def wire_value(value: str | Enum) -> str:
@@ -18,6 +20,16 @@ def wire_value(value: str | Enum) -> str:
 def string_value(name: str, value: Any) -> str:
     if not isinstance(value, str) or not value:
         raise SigningError(f"{name} must be a non-empty string")
+    return value
+
+
+def signature_chain_id(value: Any) -> str:
+    """Validate the REST-only chain id carried by createSubAccount."""
+
+    if not isinstance(value, str) or not _CHAIN_ID_PATTERN.fullmatch(value):
+        raise SigningError(
+            "signature_chain_id must be a non-negative decimal or hexadecimal string"
+        )
     return value
 
 

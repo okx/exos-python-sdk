@@ -2,6 +2,11 @@
 
 Notable changes to ExchangeOS Python SDK releases are recorded here.
 
+## 1.0.1
+
+- Preserve `createSubAccount.action.signatureChainId` in REST envelopes while excluding it from the Agent signing digest.
+- Keep `user` in the generic signed transaction envelope and reject only fields unsupported by the target account endpoint.
+
 ## 1.0.0
 
 - First stable public release of the ExchangeOS Python SDK.

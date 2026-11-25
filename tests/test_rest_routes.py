@@ -207,6 +207,62 @@ def test_account_inventory_contains_exactly_fifteen_authenticated_routes() -> No
     }
 
 
+@pytest.mark.parametrize(
+    ("method", "action_type"),
+    (("account_transfer", "subAccountTransfer"), ("create_sub_account", "createSubAccount")),
+)
+@pytest.mark.parametrize("field", ("user",))
+def test_agent_account_writes_reject_incompatible_signed_fields(
+    method: str, action_type: str, field: str
+) -> None:
+    recorder = Recorder()
+    api = AccountAPI(recorder)  # type: ignore[arg-type]
+    transaction = {
+        "action": {"type": action_type},
+        "nonce": 1,
+        field: "0x1111111111111111111111111111111111111111"
+        if field == "user"
+        else 70000196,
+    }
+
+    with pytest.raises(ValidationError, match=field):
+        getattr(api, method)(transaction)
+
+    assert recorder.calls == []
+    assert field in transaction
+
+
+def test_create_sub_account_forwards_transport_signature_chain_id() -> None:
+    recorder = Recorder()
+    api = AccountAPI(recorder)  # type: ignore[arg-type]
+    transaction = {
+        "action": {
+            "type": "createSubAccount",
+            "name": "trader-sub-1",
+            "signatureChainId": "0x42c1e43",
+        },
+        "nonce": 1,
+        "signature": {"Ecdsa": {"r": "0x" + "00" * 32, "s": "0x" + "00" * 32, "v": 0}},
+    }
+
+    api.create_sub_account(transaction)
+
+    assert recorder.calls[0][4] == transaction
+
+
+def test_account_transfer_rejects_create_sub_account_transport_field() -> None:
+    recorder = Recorder()
+    api = AccountAPI(recorder)  # type: ignore[arg-type]
+    transaction = {
+        "action": {"type": "subAccountTransfer", "signatureChainId": "0x42c1e43"},
+        "nonce": 1,
+    }
+
+    with pytest.raises(ValidationError, match="signatureChainId"):
+        api.account_transfer(transaction)
+    assert recorder.calls == []
+
+
 def test_trade_order_forwards_identifier_combinations_to_backend() -> None:
     recorder = Recorder()
     api = TradeAPI(recorder)  # type: ignore[arg-type]

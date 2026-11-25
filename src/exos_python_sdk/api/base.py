@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from ..exceptions import ValidationError
@@ -15,16 +15,26 @@ ResponseT = TypeVar("ResponseT")
 
 
 def signed_body(value: Any) -> Mapping[str, Any]:
-    """Return a signed envelope without changing values or numeric strings."""
+    """Return a signed envelope without changing its signed values."""
 
     if isinstance(value, Mapping):
-        return value
-    to_wire = getattr(value, "to_wire", None)
-    if callable(to_wire):
-        wire = to_wire()
-        if isinstance(wire, Mapping):
-            return wire
-    raise ValidationError("signed_transaction must be a mapping or expose to_wire()")
+        body = value
+    else:
+        to_wire = getattr(value, "to_wire", None)
+        if not callable(to_wire):
+            raise ValidationError("signed_transaction must be a mapping or expose to_wire()")
+        body = to_wire()
+        if not isinstance(body, Mapping):
+            raise ValidationError("signed_transaction must be a mapping or expose to_wire()")
+    return body
+
+
+def reject_signed_fields(body: Mapping[str, Any], fields: Collection[str]) -> None:
+    """Reject endpoint-incompatible fields without rewriting a signed body."""
+
+    for field in fields:
+        if field in body:
+            raise ValidationError(f"signed_transaction must not include {field!r}")
 
 
 def signed_action(body: Mapping[str, Any], expected_type: str) -> Mapping[str, Any]:
@@ -70,8 +80,10 @@ class BaseAPI:
         *,
         expected_action_type: str,
         action_validator: Callable[[Mapping[str, Any]], None] | None = None,
+        reject_fields: Collection[str] = (),
     ) -> ResponseT:  # type: ignore[type-var]
         body = signed_body(signed_transaction)
+        reject_signed_fields(body, reject_fields)
         action = signed_action(body, expected_action_type)
         if action_validator is not None:
             action_validator(action)

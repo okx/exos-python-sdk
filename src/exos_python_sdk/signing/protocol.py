@@ -29,6 +29,12 @@ _ACTION_ADDRESS_FIELDS: dict[str, tuple[str, ...]] = {
     "subAccountTransfer": ("subAccountUser",),
 }
 
+_ACTION_NON_SIGNED_FIELDS: dict[str, tuple[str, ...]] = {
+    # OpenAPI requires this transport field, but the typed TradeZone action and
+    # its on-chain Agent digest contain only `type` and `name`.
+    "createSubAccount": ("signatureChainId",),
+}
+
 
 def now_millis() -> int:
     return time.time_ns() // 1_000_000
@@ -53,6 +59,8 @@ def _canonical_action(action: Mapping[str, Any]) -> dict[str, Any]:
     canonical = cast(dict[str, Any], thaw(action))
     action_type = canonical.get("type")
     if isinstance(action_type, str):
+        for field in _ACTION_NON_SIGNED_FIELDS.get(action_type, ()):
+            canonical.pop(field, None)
         for field in _ACTION_ADDRESS_FIELDS.get(action_type, ()):
             value = canonical.get(field)
             if isinstance(value, str):
