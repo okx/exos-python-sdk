@@ -25,6 +25,13 @@ The EIP-712 domain is:
 `vaultAddress` identifies a delegated submission account and is included in
 the unsigned MessagePack, matching the Java SDK and the full TradeZone Rust
 SDK. `user`, when supplied, is also included in the unsigned hash.
+This also applies to `createSubAccount` and `subAccountTransfer`; callers
+using the agent-only REST path should sign with `user=None`. For
+`createSubAccount`, `signatureChainId` is required in the REST action but is
+transport-only: it remains in the submitted envelope and is excluded from the
+canonical Agent digest because the typed on-chain action contains only `type`
+and `name`. The `account-transfer` wrapper rejects `signatureChainId` because
+that endpoint has no corresponding transport contract.
 
 JSON and REST envelopes represent addresses as `0x`-prefixed strings. During
 canonical MessagePack encoding, typed Address fields—including `vaultAddress`,
@@ -60,7 +67,7 @@ when empty.
 | `Cancel` | `cancel` | `cancels` |
 | `CancelAll` | `cancelAll` | `asset_ids`, `market_type` |
 | `Modify` | `modify` | `modifies` |
-| `CreateSubAccount` | `createSubAccount` | `name` |
+| `CreateSubAccount` | `createSubAccount` | `name`, `signature_chain_id` |
 | `SubAccountTransfer` | `subAccountTransfer` | `sub_account_user`, `is_deposit`, `token_id`, `amount` |
 | `UpdateLeverage` | `updateLeverage` | `asset_id`, `leverage`, `position_side=None` |
 | `UpdateMarginMode` | `updateMarginMode` | `asset_id`, `margin_mode` |

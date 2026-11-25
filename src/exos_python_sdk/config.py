@@ -11,7 +11,7 @@ import httpx
 
 from .auth import Credentials
 
-DEFAULT_USER_AGENT = "EXCHANGEOS_PYTHON_SDK_1.0.0"
+DEFAULT_USER_AGENT = "EXCHANGEOS_PYTHON_SDK_1.0.1"
 
 
 class LoggingPolicy(str, Enum):

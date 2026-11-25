@@ -1,5 +1,6 @@
 """Authenticated account API."""
 
+from collections.abc import Mapping
 from typing import Any
 
 from ..models import (
@@ -15,7 +16,7 @@ from ..models import (
     TransactionReceipt,
     UserLimits,
 )
-from .base import ROOT, BaseAPI
+from .base import ROOT, BaseAPI, reject_signed_fields
 
 ACCOUNT_ENDPOINTS = (
     "account_transfer",
@@ -35,6 +36,13 @@ ACCOUNT_ENDPOINTS = (
     "detail",
 )
 
+_AGENT_ACCOUNT_REJECTED_FIELDS = ("user",)
+_ACCOUNT_TRANSFER_REJECTED_FIELDS = ("user", "signatureChainId")
+
+
+def _reject_account_transfer_transport_fields(action: Mapping[str, Any]) -> None:
+    reject_signed_fields(action, ("signatureChainId",))
+
 
 class AccountAPI(BaseAPI):
     """Authenticated account reads and signed account writes."""
@@ -47,6 +55,8 @@ class AccountAPI(BaseAPI):
             f"{self._ROOT}/account-transfer",
             signed_transaction,
             expected_action_type="subAccountTransfer",
+            reject_fields=_ACCOUNT_TRANSFER_REJECTED_FIELDS,
+            action_validator=_reject_account_transfer_transport_fields,
         )
 
     def create_sub_account(self, signed_transaction: Any) -> RestList[TransactionReceipt]:
@@ -54,6 +64,7 @@ class AccountAPI(BaseAPI):
             f"{self._ROOT}/create-sub-account",
             signed_transaction,
             expected_action_type="createSubAccount",
+            reject_fields=_AGENT_ACCOUNT_REJECTED_FIELDS,
         )
 
     def set_leverage(self, signed_transaction: Any) -> RestList[TransactionReceipt]:

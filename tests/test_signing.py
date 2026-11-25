@@ -2,6 +2,7 @@ import secrets
 
 import msgpack
 import pytest
+from eth_keys import keys  # type: ignore[attr-defined]
 from eth_utils import keccak
 
 import exos_python_sdk.signing.client_order_id as client_order_id_module
@@ -304,9 +305,10 @@ def test_account_actions_match_java_and_exchangeos_controller_discriminators() -
         )["type"]
         == "updateIsolatedMargin"
     )
-    assert create_sub_account_action("trader-sub-1") == {
+    assert create_sub_account_action("trader-sub-1", signature_chain_id="0x42c1e43") == {
         "type": "createSubAccount",
         "name": "trader-sub-1",
+        "signatureChainId": "0x42c1e43",
     }
     assert sub_account_transfer_action(
         sub_account_user="0x1111111111111111111111111111111111111111",
@@ -332,6 +334,51 @@ def test_signed_envelope_includes_vault_in_agent_hash() -> None:
     assert direct != signing_hash(action, 10)
     assert list(signed.to_wire()) == ["action", "nonce", "vaultAddress", "signature"]
     assert signed.to_wire()["vaultAddress"] == vault
+
+
+def test_create_sub_account_signature_chain_id_is_wire_only() -> None:
+    key = secrets.token_bytes(32)
+    action = create_sub_account_action("trader-sub-1", signature_chain_id="0x42c1e43")
+    canonical_action = {"type": "createSubAccount", "name": "trader-sub-1"}
+
+    assert signing_hash(action, 10) == signing_hash(canonical_action, 10)
+    signed = sign_transaction(action, key, nonce=10)
+    assert signed.to_wire()["action"] == action
+    assert (
+        recover_address(signed)
+        == keys.PrivateKey(key).public_key.to_checksum_address().lower()
+    )
+
+
+@pytest.mark.parametrize("value", [None, "", "0x", "-1", "0xzz", 70000195])
+def test_create_sub_account_rejects_invalid_signature_chain_id(value: object) -> None:
+    with pytest.raises(SigningError, match="signature_chain_id"):
+        create_sub_account_action("trader-sub-1", signature_chain_id=value)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "action",
+    (
+        create_sub_account_action("trader-sub-1", signature_chain_id="0x42c1e43"),
+        sub_account_transfer_action(
+            sub_account_user="0x1111111111111111111111111111111111111111",
+            is_deposit=True,
+            token_id="1",
+            amount="100",
+        ),
+    ),
+)
+def test_account_actions_preserve_user_in_hash_and_wire(action: dict[str, object]) -> None:
+    key = secrets.token_bytes(32)
+    user = "0x2222222222222222222222222222222222222222"
+    with_user = sign_transaction(action, key, nonce=10, user=user)
+    without_user = sign_transaction(action, key, nonce=10)
+
+    assert with_user.tx_hash != without_user.tx_hash
+    assert with_user.signature != without_user.signature
+    assert with_user.to_wire()["user"] == user
+    assert with_user.to_wire() != without_user.to_wire()
+    assert "signatureChainId" not in with_user.to_wire()
 
 
 def test_signing_snapshots_and_freezes_action_against_mutation() -> None:

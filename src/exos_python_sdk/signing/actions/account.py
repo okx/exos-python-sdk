@@ -46,8 +46,8 @@ def update_isolated_margin_action(
     ).to_wire()
 
 
-def create_sub_account_action(name: str) -> dict[str, Any]:
-    return CreateSubAccount(name=name).to_wire()
+def create_sub_account_action(name: str, *, signature_chain_id: str) -> dict[str, Any]:
+    return CreateSubAccount(name=name, signature_chain_id=signature_chain_id).to_wire()
 
 
 def sub_account_transfer_action(

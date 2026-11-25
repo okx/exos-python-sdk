@@ -158,7 +158,7 @@ def _action_samples() -> dict[str, Action]:
         "updateIsolatedMargin": UpdateIsolatedMargin(
             asset_id="1", position_side="net", direction="crossToIso", amount="10"
         ),
-        "createSubAccount": CreateSubAccount("compatibility-test"),
+        "createSubAccount": CreateSubAccount("compatibility-test", "0x42c1e43"),
         "subAccountTransfer": SubAccountTransfer(
             sub_account_user="0x1111111111111111111111111111111111111111",
             is_deposit=True,
