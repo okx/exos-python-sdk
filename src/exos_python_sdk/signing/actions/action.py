@@ -21,7 +21,7 @@ from ..models import (
     PositionMode,
     PositionSide,
 )
-from ..validation import address, choice, string_value, uint64, validate_action
+from ..validation import address, choice, signature_chain_id, string_value, uint64, validate_action
 
 
 class Action(Mapping[str, Any], ABC):
@@ -209,6 +209,7 @@ class Noop(Action):
 @dataclass(frozen=True)
 class CreateSubAccount(Action):
     name: str
+    signature_chain_id: str
 
     TYPE: ClassVar[str] = "createSubAccount"
 
@@ -216,7 +217,11 @@ class CreateSubAccount(Action):
         self.to_wire()
 
     def to_wire(self) -> dict[str, Any]:
-        return build_action(self.type, name=string_value("name", self.name))
+        return build_action(
+            self.type,
+            name=string_value("name", self.name),
+            signatureChainId=signature_chain_id(self.signature_chain_id),
+        )
 
 
 @dataclass(frozen=True)
